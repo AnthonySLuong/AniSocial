@@ -8,7 +8,9 @@ public class Query {
         """
         query ($ids: [Int], $pages: Int, $seconds: Int) {
              Page(page: $pages) {
-                 pageInfo {currentPage lastPage hasNextPage}
+                 pageInfo {
+                     lastPage
+                 }
                  activities(userId_in: $ids, type: MEDIA_LIST, sort: ID_DESC, createdAt_greater: $seconds) {
                      ... on ListActivity {
                          media {
