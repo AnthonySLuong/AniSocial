@@ -4,14 +4,14 @@ import org.json.JSONObject;
 
 public class Query {
     public static final String URL = "https://graphql.anilist.co";
-    public static final String QUERY =
+    public static final String UPDATEQUERY =
         """
-        query ($ids: [Int], $pages: Int, $seconds: Int) {
-             Page(page: $pages) {
+        query ($userids: [Int], $page: Int, time: Int) {
+             Page(page: $page) {
                  pageInfo {
                      lastPage
                  }
-                 activities(userId_in: $ids, type: MEDIA_LIST, sort: ID_DESC, createdAt_greater: $seconds) {
+                 activities(userId_in: $userids, type: MEDIA_LIST, sort: ID, createdAt_greater: time) {
                      ... on ListActivity {
                          media {
                              title {
@@ -41,10 +41,20 @@ public class Query {
         }
         """.trim().replaceAll("([\\n\\t]| {2,})", " ");
 
-    public static JSONObject toPayload(Variable variable) {
+    public static final String USERQUERY = """
+    query ($name) {
+        User (search: $name) {
+            name
+            id
+            siteUrl
+        }
+    }
+    """.trim().replaceAll("([\\n\\t]| {2,})", " ");
+
+    public static JSONObject toPayload(JSONObject variable) {
         JSONObject payload = new JSONObject();
-        payload.put("query", QUERY);
-        payload.put("variables", variable.toJson());
+        payload.put("query", UPDATEQUERY);
+        payload.put("variables", variable);
         return payload;
     }
 }
