@@ -22,6 +22,14 @@ public class User implements SubCommandInterface {
 
     @Override
     public void execute(SlashCommandInteractionEvent event) {
+
+        switch (event.getInteraction().getName().toLowerCase()) {
+            case "add":
+                break;
+
+            case "remove":
+                break;
+        }
         return;
     }
 

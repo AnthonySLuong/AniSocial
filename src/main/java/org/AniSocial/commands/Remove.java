@@ -27,6 +27,7 @@ public class Remove implements CommandInterface {
                 break;
 
             case "user":
+                User.getInstance().execute(event);
                 break;
         }
     }

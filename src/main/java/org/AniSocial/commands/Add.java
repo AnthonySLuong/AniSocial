@@ -27,6 +27,7 @@ public class Add implements CommandInterface {
                 break;
 
             case "user":
+                User.getInstance().execute(event);
                 break;
         }
     }

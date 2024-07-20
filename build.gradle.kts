@@ -30,7 +30,7 @@ dependencies {
 }
 
 application {
-    mainClass.set("org.AniSocial.AniSocial")
+    mainClass.set("org.AniSocial.Main")
 }
 
 tasks.test {
