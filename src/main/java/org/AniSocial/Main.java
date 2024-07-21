@@ -2,29 +2,62 @@ package org.AniSocial;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
-import org.AniSocial.util.Database;
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
+import org.AniSocial.commands.Add;
+import org.AniSocial.commands.Remove;
+import org.AniSocial.interfaces.CommandInterface;
+import org.AniSocial.util.AniList.AniListRunner;
+import org.AniSocial.util.DatabaseHandler;
 
-import java.io.FileInputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
-import java.util.Properties;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Main {
-    public static void main(String[] args) throws SQLException {
+    public static void main(String[] args) throws SQLException, InterruptedException {
         String token = System.getenv("TOKEN");
         String url = System.getenv("URL");
         String username = System.getenv("USERNAME");
         String password = System.getenv("PASSWORD");
+        String guildid = System.getenv("GUILDID");
 
         if (token == null || url == null || username == null || password == null) {
             throw new RuntimeException("Missing required environment variables");
         }
 
-        if (!Database.getInstance().init(url, username, password).connect().isValid()) {
+        if (!DatabaseHandler.getInstance().init(url, username, password).connect().isValid()) {
             throw new SQLException("Couldn't connect to database");
         }
 
+        Map<String, Class<? extends CommandInterface>> commands = new HashMap<>();
+        commands.put(Add.class.getSimpleName().toLowerCase(), Add.class);
+        commands.put(Remove.class.getSimpleName().toLowerCase(), Remove.class);
+
+        List<SlashCommandData> commandsData = commands.values().stream()
+                .map(cmd -> {
+                    try {
+                        CommandInterface command = (CommandInterface) cmd.getMethod("getInstance").invoke(null);
+                        return command.getSlashCommandData();
+
+                    } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                        throw new RuntimeException("Error creating instance or calling method", e);
+                    }
+                })
+                .collect(Collectors.toCollection(ArrayList::new));
+
         JDA api = JDABuilder.createDefault(token)
-                .addEventListeners(new AniSocial())
-                .build();
+                .addEventListeners(new Listener(commands))
+                .build()
+                .awaitReady();
+
+        if (guildid != null) {
+            api.getGuildById(guildid).updateCommands().addCommands(commandsData).queue();
+        }
+
+        AniListRunner.run(api);
     }
 }

@@ -11,7 +11,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.AniSocial.interfaces.SubCommandInterface;
-import org.AniSocial.util.Database;
+import org.AniSocial.util.DatabaseHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,24 +29,24 @@ public class Channel implements SubCommandInterface {
 
     @Override
     public void execute(SlashCommandInteractionEvent event) throws NullPointerException {
-        event.deferReply(true).queue();
+        event.deferReply(true).complete();
         EmbedBuilder msg = new EmbedBuilder()
                 .setDescription("Bot could not process command");
 
         // Required Options, never null
         TextChannel channel = event.getInteraction().getOption("channel").getAsChannel().asTextChannel();
         try {
-            Database database = Database.getInstance();
+            DatabaseHandler databaseHandler = DatabaseHandler.getInstance();
             switch (event.getInteraction().getName().toLowerCase()) {
                 case "add":
-                    if (database.addChannelId(event) > 0) {
+                    if (databaseHandler.addChannelId(event) > 0) {
                         msg.setDescription(String.format("Added <#%s> as activity channel", channel.getIdLong()));
                         LOGGER.info(String.format("Added %s (%d) as activity channel", channel.getName(), channel.getIdLong()));
                     }
                     break;
 
                 case "remove":
-                    if (database.removeChannelId(event.getChannelIdLong()) > 0) {
+                    if (databaseHandler.removeChannelId(event.getChannelIdLong()) > 0) {
                         msg.setDescription(String.format("Removed <#%s> as activity channel", channel.getIdLong()));
                         LOGGER.info(String.format("Removed %s (%d) as activity channel", channel.getName(), channel.getIdLong()));
                     } else {
