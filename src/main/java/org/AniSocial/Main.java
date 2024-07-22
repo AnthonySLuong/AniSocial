@@ -25,6 +25,7 @@ public class Main {
         @NonNull String username = System.getenv("USERNAME");
         @NonNull String password = System.getenv("PASSWORD");
         String guildid = System.getenv("GUILDID");
+        boolean global = Boolean.parseBoolean(System.getenv("GLOBAL"));
 
         if (!DatabaseHandler.getInstance().init(url, username, password).connect().isValid()) {
             throw new SQLException("Couldn't connect to database");
@@ -53,6 +54,10 @@ public class Main {
 
         if (guildid != null) {
             api.getGuildById(guildid).updateCommands().addCommands(commandsData).queue();
+        }
+
+        if (global) {
+            api.updateCommands().addCommands(commandsData).queue();
         }
 
         AniListRunner.getInstance().run(api);
