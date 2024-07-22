@@ -19,7 +19,7 @@ jobs:
           git pull
           ./gradlew clean
           ./gradlew shadowJar
-          java -jar build/libs/AniSocial-1.0-SNAPSHOT-all.jar
+          sudo systemctl restart anisocial
         env:
           URL: ${{ secrets.URL }}
           USERNAME: ${{ secrets.USERNAME }}
