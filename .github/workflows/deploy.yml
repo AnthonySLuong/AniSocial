@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Environment Variable
-        uses: |
+        run: |
           export URL=${{ secrets.URL }}
           export USERNAME=${{ secrets.USERNAME }}
           export PASSWORD=${{ secrets.PASSWORD }}
@@ -21,7 +21,7 @@ jobs:
           export GLOBAL=${{ vars.GLOBAL }}
 
       - name: Deploy
-        uses: |
+        run: |
           cd
           cd ~/AniSocial
           git pull
