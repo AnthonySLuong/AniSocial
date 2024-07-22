@@ -2,6 +2,7 @@ package org.AniSocial.commands;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
@@ -15,12 +16,12 @@ public class Remove implements CommandInterface {
     private static Remove remove = null;
 
     @Override
-    public void autoComplete(CommandAutoCompleteInteractionEvent event) {
+    public void autoComplete(@NonNull CommandAutoCompleteInteractionEvent event) {
         return;
     }
 
     @Override
-    public void execute(SlashCommandInteractionEvent event) {
+    public void execute(@NonNull SlashCommandInteractionEvent event) {
         switch (event.getSubcommandName().toLowerCase()) {
             case "channel":
                 Channel.getInstance().execute(event);
@@ -32,6 +33,7 @@ public class Remove implements CommandInterface {
         }
     }
 
+    @NonNull
     @Override
     public SlashCommandData getSlashCommandData() {
         return Commands.slash("remove", "Remove")
@@ -41,6 +43,7 @@ public class Remove implements CommandInterface {
                 );
     }
 
+    @NonNull
     synchronized public static Remove getInstance() {
         if (remove == null) {
             remove = new Remove();

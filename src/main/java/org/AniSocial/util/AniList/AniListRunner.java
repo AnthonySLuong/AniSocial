@@ -1,65 +1,76 @@
 package org.AniSocial.util.AniList;
 
+import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
-import org.AniSocial.Listener;
+import org.AniSocial.util.DatabaseHandler;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-@NoArgsConstructor()
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AniListRunner {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Listener.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AniListRunner.class);
+    private static AniListRunner aniListRunner = null;
 
-    public static void run(JDA api) {
-        try (ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1)) {
-            executorService.scheduleAtFixedRate(() -> task(api), 0, 15, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            LOGGER.error(e.getMessage(), e);
-        }
-    }
+    public void run(@NonNull JDA api) {
+        ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+        Runnable task = () -> {
+            try {
+                JSONObject variable = getVariables();
+                JSONObject response = AniListQueryHandler.query(AniListQueryType.LIST, variable).getJSONObject("Page");
 
-    private static void task(JDA api) {
-        JSONObject variable = getVariables();
-        JSONObject response = AniListQueryHandler.query(AniListQueryType.LIST, variable);
+                if (response != null) {
+                    JSONArray activities = response.getJSONArray("activities");
+                    JSONObject pages = response.getJSONObject("pageInfo");
+                    int lastPage = pages.getInt("lastPage");
 
-        if (response != null) {
-            JSONArray activities = response.getJSONArray("activities");
-            JSONObject pages = response.getJSONObject("pageInfo");
-            int lastPage = pages.getInt("lastPage");
+                    for (int i = 0; i < lastPage; i++) {
+                        for (int j = 0; j < activities.length(); j++) {
+                            // TODO: Database for channelId
+                            long anilistId = activities.getJSONObject(j).getJSONObject("user").getLong("id");
+                            List<Long> channelid = DatabaseHandler.getInstance().queryChannel(anilistId);
+                            for (long id : channelid) {
+                                MessageEmbed msg = buildMsg(activities.getJSONObject(j));
+                                TextChannel channel = api.getTextChannelById(id);
+                                if (channel != null) {
+                                    channel.sendMessageEmbeds(msg).completeAfter(500, TimeUnit.MILLISECONDS);
+                                }
+                            }
+                        }
 
-            for (int i = 0; i < lastPage; i++) {
-                for (int j = 0; j < activities.length(); j++) {
-                    // TODO: Database for channelId
-                    MessageEmbed msg = buildMsg(activities.getJSONObject(j));
-                    TextChannel channel = api.getTextChannelById("1261222335701323776");
-                    if (channel != null) {
-                        channel.sendMessageEmbeds(msg).completeAfter(500, TimeUnit.MILLISECONDS);
+                        if (i < lastPage - 1) {
+                            variable.increment("page");
+                            do {
+                                response = AniListQueryHandler.query(AniListQueryType.LIST, variable);
+                            } while (response == null);
+                        }
                     }
                 }
-
-                if (i < lastPage - 1) {
-                    variable.increment("page");
-                    do {
-                        response = AniListQueryHandler.query(AniListQueryType.LIST, variable);
-                    } while (response == null);
-                }
+            } catch (Exception e) {
+                LOGGER.warn(e.getMessage(), e);
             }
-        }
+        };
+
+        executorService.scheduleAtFixedRate(task, 0, 15, TimeUnit.SECONDS);
+        LOGGER.info("Starting AniSocialRunner");
     }
 
-    private static JSONObject getVariables() {
-        // TODO: Query Database for UsersID
-        int[] userId = new int[] {295061};
+    @NonNull
+    private static JSONObject getVariables() throws SQLException {
+        List<Long> userId = DatabaseHandler.getInstance().queryUser();
         JSONObject variable = new JSONObject();
         variable.put("userids", userId);
         variable.put("page", 1);
@@ -67,7 +78,8 @@ public class AniListRunner {
         return variable;
     }
 
-    private static MessageEmbed buildMsg(JSONObject msg) {
+    @NonNull
+    private static MessageEmbed buildMsg(@NonNull JSONObject msg) {
         JSONObject user =  msg.getJSONObject("user");
         JSONObject media =  msg.getJSONObject("media");
         JSONObject title = media.getJSONObject("title");
@@ -99,8 +111,9 @@ public class AniListRunner {
         return embed.build();
     }
 
-    private static String capitalizeEachWord(String input) {
-        if (input == null || input.isEmpty()) {
+    @NonNull
+    private static String capitalizeEachWord(@NonNull String input) {
+        if (input.isEmpty()) {
             return input;
         }
 
@@ -115,5 +128,13 @@ public class AniListRunner {
         }
 
         return capitalized.toString().trim();
+    }
+
+    @NonNull
+    public static AniListRunner getInstance() {
+        if (aniListRunner == null) {
+            aniListRunner = new AniListRunner();
+        }
+        return new AniListRunner();
     }
 }

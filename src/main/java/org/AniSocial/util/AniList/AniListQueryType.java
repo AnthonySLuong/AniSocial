@@ -1,6 +1,7 @@
 package org.AniSocial.util.AniList;
 
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 @Getter
@@ -14,7 +15,12 @@ public enum AniListQueryType {
                         }
                     activities(userId_in: $userids, type: MEDIA_LIST, sort: ID, createdAt_greater: $time) {
                         ... on ListActivity {
+                            status
+                            progress
+                            createdAt
                             media {
+                                siteUrl
+                                isAdult
                                 title {
                                     romaji
                                     english
@@ -23,19 +29,15 @@ public enum AniListQueryType {
                                 coverImage {
                                     medium
                                 }
-                                siteUrl
-                                isAdult
                             }
                             user {
                                 name
+                                id
+                                siteUrl
                                 avatar {
                                     medium
                                 }
-                                siteUrl
                             }
-                            status
-                            progress
-                            createdAt
                         }
                     }
                 }
@@ -51,5 +53,5 @@ public enum AniListQueryType {
             }
             """.trim().replaceAll("([\\n\\t]| {2,})", " "));
 
-    private final String query;
+    @NonNull private final String query;
 }

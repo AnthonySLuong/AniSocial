@@ -2,11 +2,14 @@ package org.AniSocial.util;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class DatabaseHandler {
@@ -14,24 +17,24 @@ public class DatabaseHandler {
     private static final String addChannelQuery = "INSERT INTO channels VALUES (?, ?, ?, ?, NOW(), ?)";
     private static final String deleteChannelQuery = "DELETE FROM channels WHERE channel_id = ?";
     private static final String addUserQuery = "INSERT INTO users VALUES (?, ?, ?, ?, ?, NOW())";
-    private static final String deleteUserQuery = "DELETE FROM users WHERE anilist_name = ?";
+    private static final String deleteUserQuery = "DELETE FROM users WHERE anilist_name = ? AND channel_id = ?";
+    private static final String anilistIdQuery = "SELECT DISTINCT anilist_id FROM USERS";
+    private static final String channelIdQuery = "SELECT channel_id FROM USERS WHERE anilist_id = ?";
+
     private static DatabaseHandler databaseHandler = null;
 
     private Connection con;
     private String url, username, password;
 
-    public DatabaseHandler init(String url, String username, String password) {
-        if (url == null || url.isEmpty() ||
-                username == null || username.isEmpty() ||
-                password == null || password.isEmpty()) {
-            throw new IllegalArgumentException("Invalid arguments");
-        }
+    @NonNull
+    public DatabaseHandler init(@NonNull String url, @NonNull String username, @NonNull String password) {
         this.url = url;
         this.username = username;
         this.password = password;
         return this;
     }
 
+    @NonNull
     public DatabaseHandler connect() throws SQLException {
         if (this.url == null || this.username == null || this.password == null) {
             throw new SQLException("Database not initialized");
@@ -45,14 +48,34 @@ public class DatabaseHandler {
         return this.con.isValid(0);
     }
 
-//    public int[] queryUser() throws SQLException {
-//        try (PreparedStatement statement = this.con.prepareStatement("SELECT * FROM USERS")) {
-//            ResultSet result = statement.executeQuery();
-//
-//        }
-//    }
+    public List<Long> queryUser() throws SQLException {
+        List<Long> id = new ArrayList<>();
+        try (PreparedStatement statement = this.con.prepareStatement(anilistIdQuery)) {
+            ResultSet result = statement.executeQuery();
 
-    public int addChannelId(SlashCommandInteractionEvent event) throws SQLException {
+            while (result.next()) {
+                id.add(result.getLong(1));
+            }
+        }
+
+        return id;
+    }
+
+    public List<Long> queryChannel(long userId) throws SQLException {
+        List<Long> channelId = new ArrayList<>();
+
+        try (PreparedStatement statement = this.con.prepareStatement(channelIdQuery)) {
+            statement.setLong(1, userId);
+            ResultSet result = statement.executeQuery();
+
+            while (result.next()) {
+                channelId.add(result.getLong(1));
+            }
+        }
+        return channelId;
+    }
+
+    public int addChannelId(@NonNull SlashCommandInteractionEvent event) throws SQLException {
         try (PreparedStatement statement = this.con.prepareStatement(addChannelQuery)) {
             statement.setLong(1, event.getChannelIdLong());
             statement.setString(2, event.getChannel().getName());
@@ -70,7 +93,7 @@ public class DatabaseHandler {
         }
     }
 
-    public int addUser(long id, String name, String siteUrl, SlashCommandInteractionEvent event) throws SQLException {
+    public int addUser(long id, @NonNull String name, @NonNull String siteUrl, @NonNull SlashCommandInteractionEvent event) throws SQLException {
         try (PreparedStatement statement = this.con.prepareStatement(addUserQuery)) {
             statement.setLong(1, id);
             statement.setString(2, name.toLowerCase());
@@ -82,13 +105,15 @@ public class DatabaseHandler {
         }
     }
 
-    public int removeUser(String user) throws SQLException {
+    public int removeUser(@NonNull String user, long channelId) throws SQLException {
         try (PreparedStatement statement = this.con.prepareStatement(deleteUserQuery)) {
             statement.setString(1, user.toLowerCase());
+            statement.setLong(2, channelId);
             return statement.executeUpdate();
         }
     }
 
+    @NonNull
     public static synchronized DatabaseHandler getInstance() throws SQLException {
         if (databaseHandler == null) {
             databaseHandler = new DatabaseHandler();

@@ -6,13 +6,15 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AniListQueryHandler {
-    public static final String URL = "https://graphql.anilist.co";
     private static final Logger LOGGER = LoggerFactory.getLogger(AniListQueryHandler.class);
+    private static final String URL = "https://graphql.anilist.co";
     private static final OkHttpClient CLIENT = new OkHttpClient();
 
-    public static JSONObject query(AniListQueryType type, JSONObject variable) {
+    public static JSONObject query(@NonNull AniListQueryType type, @NonNull JSONObject variable) {
         String payload = toPayload(type, variable).toString();
         RequestBody body = RequestBody.create(payload, MediaType.parse("application/json"));
         Request request = new Request.Builder()
@@ -25,9 +27,11 @@ public class AniListQueryHandler {
             if (response.isSuccessful() && response.body() != null) {
                 return new JSONObject(response.body().string()).getJSONObject("data");
             }
-            LOGGER.error(String.format("Received response but not valid: %s", response));
+            LOGGER.warn(String.format("Received response but not valid: %s", response));
+        } catch (IOException e) {
+            LOGGER.warn(e.getMessage(), e);
         } catch (Exception e) {
-            LOGGER.error(String.format("Execution caught during Post Request: %s", e.getMessage()));
+            LOGGER.error(e.getMessage(), e);
         }
 
         return null;
@@ -38,13 +42,13 @@ public class AniListQueryHandler {
         switch (query) {
             case LIST:
                 if (!variable.has("userids") && !variable.has("page") && !variable.has("time")) {
-                    throw new IllegalArgumentException("variable must contain userids, page and time");
+                    throw new IllegalStateException("variable must contain userids, page and time");
                 }
                 break;
 
             case USER:
                 if (!variable.has("user")) {
-                    throw new IllegalArgumentException("variable must contain user");
+                    throw new IllegalStateException("variable must contain user");
                 }
                 break;
 

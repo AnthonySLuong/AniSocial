@@ -1,5 +1,6 @@
 package org.AniSocial;
 
+import lombok.NonNull;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
@@ -19,15 +20,11 @@ import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) throws SQLException, InterruptedException {
-        String token = System.getenv("TOKEN");
-        String url = System.getenv("URL");
-        String username = System.getenv("USERNAME");
-        String password = System.getenv("PASSWORD");
+        @NonNull String token = System.getenv("TOKEN");
+        @NonNull String url = System.getenv("URL");
+        @NonNull String username = System.getenv("USERNAME");
+        @NonNull String password = System.getenv("PASSWORD");
         String guildid = System.getenv("GUILDID");
-
-        if (token == null || url == null || username == null || password == null) {
-            throw new RuntimeException("Missing required environment variables");
-        }
 
         if (!DatabaseHandler.getInstance().init(url, username, password).connect().isValid()) {
             throw new SQLException("Couldn't connect to database");
@@ -58,6 +55,6 @@ public class Main {
             api.getGuildById(guildid).updateCommands().addCommands(commandsData).queue();
         }
 
-        AniListRunner.run(api);
+        AniListRunner.getInstance().run(api);
     }
 }

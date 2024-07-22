@@ -2,6 +2,7 @@ package org.AniSocial.subcommands;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -24,12 +25,12 @@ public class User implements SubCommandInterface {
     private static User user = null;
 
     @Override
-    public void autoComplete(CommandAutoCompleteInteractionEvent event) {
+    public void autoComplete(@NonNull CommandAutoCompleteInteractionEvent event) {
         return;
     }
 
     @Override
-    public void execute(SlashCommandInteractionEvent event) {
+    public void execute(@NonNull SlashCommandInteractionEvent event) {
         event.deferReply(true).complete();
 
         // Require event
@@ -55,10 +56,10 @@ public class User implements SubCommandInterface {
                     break;
 
                 case "remove":
-                    if (database.removeUser(user) > 0) {
-                        msg = String.format("Removed %s user(s)", user);
+                    if (database.removeUser(user, event.getChannelIdLong()) > 0) {
+                        msg = String.format("Removed %s user", user);
                     } else {
-                        msg = String.format("%s user(s) was not found", user);
+                        msg = String.format("%s user was not found", user);
                     }
                     break;
             }
@@ -71,12 +72,14 @@ public class User implements SubCommandInterface {
         event.getHook().editOriginal(msg).queue();
     }
 
+    @NonNull
     @Override
     public SubcommandData getSubcommandData() {
         return new SubcommandData("user", "user")
                 .addOption(OptionType.STRING, "user", "user", true);
     }
 
+    @NonNull
     synchronized public static User getInstance() {
         if (user == null) {
             user = new User();

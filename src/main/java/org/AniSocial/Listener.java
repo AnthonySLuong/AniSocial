@@ -47,11 +47,11 @@ public class Listener extends ListenerAdapter {
             }
         } else {
             if (event.isAcknowledged()) {
-                event.reply(String.format("Invalid command! %s", commmandString)).setEphemeral(true).queue();
-            } else {
                 event.getHook().editOriginal(String.format("Invalid command! %s", commmandString)).queue();
+            } else {
+                event.reply(String.format("Invalid command! %s", commmandString)).setEphemeral(true).queue();
             }
-            LOGGER.warn(String.format("Invalid command! %s", commmandString));
+            LOGGER.error(String.format("Invalid command! %s", commmandString));
         }
     }
 }

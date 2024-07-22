@@ -2,6 +2,7 @@ package org.AniSocial.subcommands;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -23,12 +24,12 @@ public class Channel implements SubCommandInterface {
     private static Channel channel = null;
 
     @Override
-    public void autoComplete(CommandAutoCompleteInteractionEvent event) {
+    public void autoComplete(@NonNull CommandAutoCompleteInteractionEvent event) {
         return;
     }
 
     @Override
-    public void execute(SlashCommandInteractionEvent event) throws NullPointerException {
+    public void execute(@NonNull SlashCommandInteractionEvent event) throws NullPointerException {
         event.deferReply(true).complete();
         EmbedBuilder msg = new EmbedBuilder()
                 .setDescription("Bot could not process command");
@@ -66,6 +67,7 @@ public class Channel implements SubCommandInterface {
         event.getHook().editOriginalEmbeds(msg.build()).queue();
     }
 
+    @NonNull
     @Override
     public SubcommandData getSubcommandData() {
         return new SubcommandData("channel", "Add/Remove text channel where the bot can send updates")
@@ -73,6 +75,7 @@ public class Channel implements SubCommandInterface {
                         .setChannelTypes(ChannelType.TEXT));
     }
 
+    @NonNull
     synchronized public static Channel getInstance() {
         if (channel == null) {
             channel = new Channel();
