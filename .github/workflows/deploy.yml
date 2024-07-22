@@ -12,14 +12,6 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Environment Variable
-        run: |
-          export URL=${{ secrets.URL }}
-          export USERNAME=${{ secrets.USERNAME }}
-          export PASSWORD=${{ secrets.PASSWORD }}
-          export TOKEN=${{ secrets.TOKEN }}
-          export GLOBAL=${{ vars.GLOBAL }}
-
       - name: Deploy
         run: |
           cd
@@ -27,4 +19,10 @@ jobs:
           git pull
           ./gradlew clean
           ./gradlew shadowJar
-          java -jar build/libs/AniSocial-1.0-SNAPSHOT-all.jar
+          java -jar /build/libs/AniSocial-1.0-SNAPSHOT-all.jar
+        env:
+          URL: ${{ secrets.URL }}
+          USERNAME: ${{ secrets.USERNAME }}
+          PASSWORD: ${{ secrets.PASSWORD }}
+          TOKEN: ${{ secrets.TOKEN }}
+          GLOBAL: ${{ vars.GLOBAL }}
