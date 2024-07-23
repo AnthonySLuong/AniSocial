@@ -10,7 +10,6 @@ import org.AniSocial.interfaces.CommandInterface;
 import org.AniSocial.util.AniList.AniListRunner;
 import org.AniSocial.util.DatabaseHandler;
 
-import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,20 +30,12 @@ public class Main {
             throw new SQLException("Couldn't connect to database");
         }
 
-        Map<String, Class<? extends CommandInterface>> commands = new HashMap<>();
-        commands.put(Add.class.getSimpleName().toLowerCase(), Add.class);
-        commands.put(Remove.class.getSimpleName().toLowerCase(), Remove.class);
+        Map<String, CommandInterface> commands = new HashMap<>();
+        commands.put(Add.class.getSimpleName().toLowerCase(), new Add());
+        commands.put(Remove.class.getSimpleName().toLowerCase(), new Add());
 
         List<SlashCommandData> commandsData = commands.values().stream()
-                .map(cmd -> {
-                    try {
-                        CommandInterface command = (CommandInterface) cmd.getMethod("getInstance").invoke(null);
-                        return command.getSlashCommandData();
-
-                    } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                        throw new RuntimeException("Error creating instance or calling method", e);
-                    }
-                })
+                .map(CommandInterface::getSlashCommandData)
                 .collect(Collectors.toCollection(ArrayList::new));
 
         JDA api = JDABuilder.createDefault(token)

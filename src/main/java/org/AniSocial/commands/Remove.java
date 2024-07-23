@@ -11,9 +11,8 @@ import org.AniSocial.interfaces.CommandInterface;
 import org.AniSocial.subcommands.Channel;
 import org.AniSocial.subcommands.User;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor()
 public class Remove implements CommandInterface {
-    private static Remove remove = null;
 
     @Override
     public void autoComplete(@NonNull CommandAutoCompleteInteractionEvent event) {
@@ -41,13 +40,5 @@ public class Remove implements CommandInterface {
                         Channel.getInstance().getSubcommandData(),
                         User.getInstance().getSubcommandData()
                 );
-    }
-
-    @NonNull
-    synchronized public static Remove getInstance() {
-        if (remove == null) {
-            remove = new Remove();
-        }
-        return remove;
     }
 }

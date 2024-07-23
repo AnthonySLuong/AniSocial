@@ -14,7 +14,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class Listener extends ListenerAdapter {
     private static final Logger LOGGER = LoggerFactory.getLogger(Listener.class);
-    private final Map<String, Class<? extends CommandInterface>> commands;
+    private final Map<String, CommandInterface> commands;
 
     @Override
     public void onReady(@NotNull ReadyEvent event) {
@@ -32,11 +32,9 @@ public class Listener extends ListenerAdapter {
 
         String commandName = event.getInteraction().getName().toLowerCase();
         if (this.commands.containsKey(commandName)) {
-            Class<? extends CommandInterface> commandClass = this.commands.get(commandName);
             try {
-                CommandInterface instance = (CommandInterface) commandClass.getMethod("getInstance").invoke(null);
-                instance.execute(event);
-                LOGGER.info(String.format("Command executed => %s by %s", commmandString, username));
+                this.commands.get(commandName).execute(event);
+                LOGGER.info(String.format("Command executed => %s by %s (%d)", commmandString, username, userid));
             } catch (Exception e) {
                 if (event.isAcknowledged()) {
                     event.getHook().editOriginal(String.format("Bot couldn't execute %s", commmandString)).queue();
@@ -46,11 +44,7 @@ public class Listener extends ListenerAdapter {
                 LOGGER.warn(String.format("Bot couldn't execute %s", commmandString), e);
             }
         } else {
-            if (event.isAcknowledged()) {
-                event.getHook().editOriginal(String.format("Invalid command! %s", commmandString)).queue();
-            } else {
-                event.reply(String.format("Invalid command! %s", commmandString)).setEphemeral(true).queue();
-            }
+            event.reply(String.format("Invalid command! %s", commmandString)).setEphemeral(true).queue();
             LOGGER.error(String.format("Invalid command! %s", commmandString));
         }
     }

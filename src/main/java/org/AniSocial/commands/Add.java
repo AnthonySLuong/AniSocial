@@ -1,6 +1,5 @@
 package org.AniSocial.commands;
 
-import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
@@ -11,9 +10,8 @@ import org.AniSocial.interfaces.CommandInterface;
 import org.AniSocial.subcommands.Channel;
 import org.AniSocial.subcommands.User;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor()
 public class Add implements CommandInterface {
-    private static Add add = null;
 
     @Override
     public void autoComplete(@NonNull CommandAutoCompleteInteractionEvent event) {
@@ -41,13 +39,5 @@ public class Add implements CommandInterface {
                         Channel.getInstance().getSubcommandData(),
                         User.getInstance().getSubcommandData()
                 );
-    }
-
-    @NonNull
-    synchronized public static Add getInstance() {
-        if (add == null) {
-            add = new Add();
-        }
-        return add;
     }
 }
