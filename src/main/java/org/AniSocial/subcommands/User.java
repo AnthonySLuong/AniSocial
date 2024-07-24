@@ -7,7 +7,6 @@ import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInterac
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
-import okhttp3.*;
 import org.AniSocial.interfaces.SubCommandInterface;
 import org.AniSocial.util.AniList.AniListQueryType;
 import org.AniSocial.util.DatabaseHandler;
@@ -17,16 +16,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
+import java.util.Objects;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class User implements SubCommandInterface {
     private static final Logger LOGGER = LoggerFactory.getLogger(User.class);
-    private static final OkHttpClient CLIENT = new OkHttpClient();
     private static User user = null;
 
     @Override
     public void autoComplete(@NonNull CommandAutoCompleteInteractionEvent event) {
-        return;
+
     }
 
     @Override
@@ -35,7 +34,7 @@ public class User implements SubCommandInterface {
 
         // Require event
         String msg = "Could not process command or find user";
-        String user = event.getOption("user").getAsString();
+        String user = Objects.requireNonNull(event.getOption("user")).getAsString();
 
         try {
             DatabaseHandler database = DatabaseHandler.getInstance();
@@ -44,14 +43,14 @@ public class User implements SubCommandInterface {
                     JSONObject variable = new JSONObject();
                     variable.put("user", user);
 
-                    JSONObject userData = AniListQueryHandler.query(AniListQueryType.USER, variable).getJSONObject("User");
+                    JSONObject userData = Objects.requireNonNull(AniListQueryHandler.query(AniListQueryType.USER, variable)).getJSONObject("User");
                     long userId = userData.getLong("id");
                     String name = userData.getString("name");
                     String siteurl = userData.getString("siteUrl");
                     if (database.addUser(userId, name, siteurl, event) > 0) {
-                        msg = msg = String.format("Added [%s](%s) user", user, siteurl);
+                        msg = String.format("Added [%s](%s) user to <#%d>", user, siteurl, event.getChannelIdLong());
                     } else {
-                        msg = msg = String.format("Failed to add [%s](%s) user", user, siteurl);
+                        msg = String.format("Failed to add [%s](%s) user to <#%d>", user, siteurl, event.getChannelIdLong());
                     }
                     break;
 
@@ -76,7 +75,7 @@ public class User implements SubCommandInterface {
     @Override
     public SubcommandData getSubcommandData() {
         return new SubcommandData("user", "user")
-                .addOption(OptionType.STRING, "user", "user", true);
+                .addOption(OptionType.STRING, "user", "AniList Username or Anilist Profile Link", true);
     }
 
     @NonNull

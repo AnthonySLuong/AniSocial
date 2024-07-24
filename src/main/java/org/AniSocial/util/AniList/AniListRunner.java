@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.time.Instant;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -29,34 +29,45 @@ public class AniListRunner {
         ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
         Runnable task = () -> {
             try {
+                Map<Long, Collection<MessageEmbed>> allMsg = new HashMap<>();
                 JSONObject variable = getVariables();
-                JSONObject response = AniListQueryHandler.query(AniListQueryType.LIST, variable).getJSONObject("Page");
+                JSONObject response = AniListQueryHandler.query(AniListQueryType.LIST, variable);
 
                 if (response != null) {
-                    JSONArray activities = response.getJSONArray("activities");
-                    JSONObject pages = response.getJSONObject("pageInfo");
-                    int lastPage = pages.getInt("lastPage");
+                    JSONObject data = response.getJSONObject("Page");
+                    JSONArray activities = data.getJSONArray("activities");
 
-                    for (int i = 0; i < lastPage; i++) {
-                        for (int j = 0; j < activities.length(); j++) {
-                            // TODO: Database for channelId
-                            long anilistId = activities.getJSONObject(j).getJSONObject("user").getLong("id");
+                    for (int i = 0; i < activities.length(); i++) {
+                        long anilistId = activities.getJSONObject(i).getJSONObject("user").getLong("id");
+                        List<Long> channelid = DatabaseHandler.getInstance().queryChannel(anilistId);
+                        for (long id : channelid) {
+                            MessageEmbed msg = buildMsg(activities.getJSONObject(i));
+                            allMsg.computeIfAbsent(id, k -> new ArrayList<>()).add(msg);
+                        }
+                    }
+
+                    while (data.getJSONObject("pageInfo").getBoolean("hasNextPage")) {
+                        variable.increment("page");
+
+                        do {
+                            response = AniListQueryHandler.query(AniListQueryType.LIST, variable);
+                        } while (response == null);
+
+                        for (int i = 0; i < activities.length(); i++) {
+                            long anilistId = activities.getJSONObject(i).getJSONObject("user").getLong("id");
                             List<Long> channelid = DatabaseHandler.getInstance().queryChannel(anilistId);
                             for (long id : channelid) {
-                                MessageEmbed msg = buildMsg(activities.getJSONObject(j));
-                                TextChannel channel = api.getTextChannelById(id);
-                                if (channel != null) {
-                                    channel.sendMessageEmbeds(msg).completeAfter(500, TimeUnit.MILLISECONDS);
-                                }
+                                MessageEmbed msg = buildMsg(activities.getJSONObject(i));
+                                allMsg.computeIfAbsent(id, k -> new ArrayList<>()).add(msg);
                             }
                         }
+                    }
+                }
 
-                        if (i < lastPage - 1) {
-                            variable.increment("page");
-                            do {
-                                response = AniListQueryHandler.query(AniListQueryType.LIST, variable);
-                            } while (response == null);
-                        }
+                for (long id: allMsg.keySet()) {
+                    TextChannel channel = api.getTextChannelById(id);
+                    if (channel != null) {
+                        channel.sendMessageEmbeds(allMsg.get(id)).completeAfter(500, TimeUnit.MILLISECONDS);
                     }
                 }
             } catch (Exception e) {

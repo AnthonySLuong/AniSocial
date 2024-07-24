@@ -1,7 +1,9 @@
 package org.AniSocial;
 
 import lombok.RequiredArgsConstructor;
+import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.AniSocial.interfaces.CommandInterface;
@@ -20,6 +22,11 @@ public class Listener extends ListenerAdapter {
     public void onReady(@NotNull ReadyEvent event) {
         String login = String.format("%s Logged in!", event.getJDA().getSelfUser().getName());
         LOGGER.info(login);
+    }
+
+    @Override
+    public void onCommandAutoCompleteInteraction(@NotNull CommandAutoCompleteInteractionEvent event) {
+
     }
 
     @Override
@@ -47,5 +54,10 @@ public class Listener extends ListenerAdapter {
             event.reply(String.format("Invalid command! %s", commmandString)).setEphemeral(true).queue();
             LOGGER.error(String.format("Invalid command! %s", commmandString));
         }
+    }
+
+    @Override
+    public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
+
     }
 }

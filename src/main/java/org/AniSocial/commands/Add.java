@@ -2,6 +2,7 @@ package org.AniSocial.commands;
 
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
@@ -22,7 +23,11 @@ public class Add implements CommandInterface {
     public void execute(@NonNull SlashCommandInteractionEvent event) {
         switch (event.getSubcommandName().toLowerCase()) {
             case "channel":
-                Channel.getInstance().execute(event);
+                if (event.getMember().hasPermission(Permission.ADMINISTRATOR, Permission.MANAGE_CHANNEL)) {
+                    Channel.getInstance().execute(event);
+                } else {
+                    event.reply("You do not have permission to use this command!").setEphemeral(true).queue();
+                }
                 break;
 
             case "user":
@@ -38,6 +43,7 @@ public class Add implements CommandInterface {
                 .addSubcommands(
                         Channel.getInstance().getSubcommandData(),
                         User.getInstance().getSubcommandData()
-                );
+                )
+                .setGuildOnly(true);
     }
 }

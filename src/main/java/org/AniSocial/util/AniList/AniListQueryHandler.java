@@ -6,8 +6,6 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AniListQueryHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(AniListQueryHandler.class);
@@ -28,10 +26,8 @@ public class AniListQueryHandler {
                 return new JSONObject(response.body().string()).getJSONObject("data");
             }
             LOGGER.warn(String.format("Received response but not valid: %s", response));
-        } catch (IOException e) {
-            LOGGER.warn(e.getMessage(), e);
         } catch (Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LOGGER.warn(e.getMessage(), e);
         }
 
         return null;

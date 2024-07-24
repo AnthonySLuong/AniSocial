@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class DatabaseHandler {
@@ -45,9 +46,13 @@ public class DatabaseHandler {
     }
 
     public boolean isValid() throws SQLException {
+        if (this.con == null) {
+            return false;
+        }
         return this.con.isValid(0);
     }
 
+    @NonNull
     public List<Long> queryUser() throws SQLException {
         List<Long> id = new ArrayList<>();
         try (PreparedStatement statement = this.con.prepareStatement(anilistIdQuery)) {
@@ -61,6 +66,7 @@ public class DatabaseHandler {
         return id;
     }
 
+    @NonNull
     public List<Long> queryChannel(long userId) throws SQLException {
         List<Long> channelId = new ArrayList<>();
 
@@ -79,7 +85,7 @@ public class DatabaseHandler {
         try (PreparedStatement statement = this.con.prepareStatement(addChannelQuery)) {
             statement.setLong(1, event.getChannelIdLong());
             statement.setString(2, event.getChannel().getName());
-            statement.setLong(3, event.getGuild().getIdLong());
+            statement.setLong(3, Objects.requireNonNull(event.getGuild()).getIdLong());
             statement.setString(4, event.getGuild().getName());
             statement.setLong(5, event.getInteraction().getUser().getIdLong());
             return statement.executeUpdate();

@@ -3,12 +3,15 @@ package org.AniSocial;
 import lombok.NonNull;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import org.AniSocial.commands.Add;
 import org.AniSocial.commands.Remove;
 import org.AniSocial.interfaces.CommandInterface;
 import org.AniSocial.util.AniList.AniListRunner;
 import org.AniSocial.util.DatabaseHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -18,13 +21,15 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Main {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+
     public static void main(String[] args) throws SQLException, InterruptedException {
         @NonNull String token = System.getenv("TOKEN");
         @NonNull String url = System.getenv("URL");
         @NonNull String username = System.getenv("USERNAME");
         @NonNull String password = System.getenv("PASSWORD");
-        String guildid = System.getenv("GUILDID");
         boolean global = Boolean.parseBoolean(System.getenv("GLOBAL"));
+        String guildid = System.getenv("GUILDID");
 
         if (!DatabaseHandler.getInstance().init(url, username, password).connect().isValid()) {
             throw new SQLException("Couldn't connect to database");
@@ -32,7 +37,7 @@ public class Main {
 
         Map<String, CommandInterface> commands = new HashMap<>();
         commands.put(Add.class.getSimpleName().toLowerCase(), new Add());
-        commands.put(Remove.class.getSimpleName().toLowerCase(), new Add());
+        commands.put(Remove.class.getSimpleName().toLowerCase(), new Remove());
 
         List<SlashCommandData> commandsData = commands.values().stream()
                 .map(CommandInterface::getSlashCommandData)
@@ -44,7 +49,13 @@ public class Main {
                 .awaitReady();
 
         if (guildid != null) {
-            api.getGuildById(guildid).updateCommands().addCommands(commandsData).queue();
+            Guild guild = api.getGuildById(guildid);
+            if (guild != null) {
+                LOGGER.info(String.format("Updating guild Commands %s", guild.getName()));
+                guild.updateCommands().addCommands(commandsData).queue();
+            } else {
+                LOGGER.warn(String.format("Could not find guild %s", guildid));
+            }
         }
 
         if (global) {

@@ -11,8 +11,8 @@ public enum AniListQueryType {
             query ($userids: [Int], $page: Int, $time: Int) {
                 Page(page: $page) {
                     pageInfo {
-                        lastPage
-                        }
+                        hasNextPage
+                    }
                     activities(userId_in: $userids, type: MEDIA_LIST, sort: ID, createdAt_greater: $time) {
                         ... on ListActivity {
                             status
