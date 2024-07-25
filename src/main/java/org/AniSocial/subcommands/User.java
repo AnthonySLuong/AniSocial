@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.AniSocial.interfaces.SubCommandInterface;
@@ -24,51 +25,56 @@ public class User implements SubCommandInterface {
     private static User user = null;
 
     @Override
-    public void autoComplete(@NonNull CommandAutoCompleteInteractionEvent event) {
-
+    public void onCommandAutoCompleteInteraction(@NonNull CommandAutoCompleteInteractionEvent event) {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @Override
-    public void execute(@NonNull SlashCommandInteractionEvent event) {
-        event.deferReply(true).complete();
+    public void onSlashCommandInteraction(@NonNull SlashCommandInteractionEvent event) {
+        event.deferReply(true).queue(hook -> {
+            // Require event
+            String msg = "Could not process command or find user";
+            String user = Objects.requireNonNull(event.getOption("user")).getAsString();
+            try {
+                DatabaseHandler database = DatabaseHandler.getInstance();
+                switch (event.getInteraction().getName().toLowerCase()) {
+                    case "add":
+                        JSONObject variable = new JSONObject();
+                        variable.put("user", user);
 
-        // Require event
-        String msg = "Could not process command or find user";
-        String user = Objects.requireNonNull(event.getOption("user")).getAsString();
+                        JSONObject userData = Objects.requireNonNull(AniListQueryHandler.query(AniListQueryType.USER, variable));
+                        userData = userData.getJSONObject("User");
+                        long userId = userData.getLong("id");
+                        String name = userData.getString("name");
+                        String siteurl = userData.getString("siteUrl");
+                        if (database.addUser(userId, name, siteurl, event) > 0) {
+                            msg = String.format("Added [%s](%s) user to <#%d>", name, siteurl, event.getChannelIdLong());
+                        } else {
+                            msg = String.format("Failed to add [%s](%s) user to <#%d>", name, siteurl, event.getChannelIdLong());
+                        }
+                        break;
 
-        try {
-            DatabaseHandler database = DatabaseHandler.getInstance();
-            switch (event.getInteraction().getName().toLowerCase()) {
-                case "add":
-                    JSONObject variable = new JSONObject();
-                    variable.put("user", user);
-
-                    JSONObject userData = Objects.requireNonNull(AniListQueryHandler.query(AniListQueryType.USER, variable)).getJSONObject("User");
-                    long userId = userData.getLong("id");
-                    String name = userData.getString("name");
-                    String siteurl = userData.getString("siteUrl");
-                    if (database.addUser(userId, name, siteurl, event) > 0) {
-                        msg = String.format("Added [%s](%s) user to <#%d>", user, siteurl, event.getChannelIdLong());
-                    } else {
-                        msg = String.format("Failed to add [%s](%s) user to <#%d>", user, siteurl, event.getChannelIdLong());
-                    }
-                    break;
-
-                case "remove":
-                    if (database.removeUser(user, event.getChannelIdLong()) > 0) {
-                        msg = String.format("Removed %s user", user);
-                    } else {
-                        msg = String.format("%s user was not found", user);
-                    }
-                    break;
+                    case "remove":
+                        if (database.removeUser(user, event.getChannelIdLong()) > 0) {
+                            msg = String.format("Removed %s user", user);
+                        } else {
+                            msg = String.format("%s user was not found", user);
+                        }
+                        break;
+                }
+            } catch (SQLException e) {
+                if (LOGGER.isWarnEnabled()) {
+                    LOGGER.warn(e.getLocalizedMessage(), e);
+                }
             }
-        } catch (SQLException e) {
-            if (LOGGER.isWarnEnabled()) {
-                LOGGER.warn(e.getLocalizedMessage(), e);
-            }
-        }
 
-        event.getHook().editOriginal(msg).queue();
+            hook.editOriginal(msg).queue();
+        });
+    }
+
+    @Override
+    public void onButtonInteraction(@NonNull ButtonInteractionEvent event) throws Exception {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     @NonNull

@@ -11,6 +11,8 @@ import org.AniSocial.interfaces.CommandInterface;
 import org.AniSocial.subcommands.Channel;
 import org.AniSocial.subcommands.User;
 
+import java.util.Objects;
+
 @NoArgsConstructor()
 public class Remove implements CommandInterface {
 
@@ -21,17 +23,17 @@ public class Remove implements CommandInterface {
 
     @Override
     public void execute(@NonNull SlashCommandInteractionEvent event) {
-        switch (event.getSubcommandName().toLowerCase()) {
+        switch (Objects.requireNonNull(event.getSubcommandName()).toLowerCase()) {
             case "channel":
-                if (event.getMember().hasPermission(Permission.ADMINISTRATOR, Permission.MANAGE_CHANNEL)) {
-                    Channel.getInstance().execute(event);
+                if (Objects.requireNonNull(event.getMember()).hasPermission(Permission.ADMINISTRATOR, Permission.MANAGE_CHANNEL)) {
+                    Channel.getInstance().onSlashCommandInteraction(event);
                 } else {
                     event.reply("You do not have permission to use this command!").setEphemeral(true).queue();
                 }
                 break;
 
             case "user":
-                User.getInstance().execute(event);
+                User.getInstance().onSlashCommandInteraction(event);
                 break;
         }
     }

@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import org.AniSocial.util.DatabaseHandler;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -36,15 +37,7 @@ public class AniListRunner {
                 if (response != null) {
                     JSONObject data = response.getJSONObject("Page");
                     JSONArray activities = data.getJSONArray("activities");
-
-                    for (int i = 0; i < activities.length(); i++) {
-                        long anilistId = activities.getJSONObject(i).getJSONObject("user").getLong("id");
-                        List<Long> channelid = DatabaseHandler.getInstance().queryChannel(anilistId);
-                        for (long id : channelid) {
-                            MessageEmbed msg = buildMsg(activities.getJSONObject(i));
-                            allMsg.computeIfAbsent(id, k -> new ArrayList<>()).add(msg);
-                        }
-                    }
+                    iterateSinglePage(allMsg, activities);
 
                     while (data.getJSONObject("pageInfo").getBoolean("hasNextPage")) {
                         variable.increment("page");
@@ -53,21 +46,18 @@ public class AniListRunner {
                             response = AniListQueryHandler.query(AniListQueryType.LIST, variable);
                         } while (response == null);
 
-                        for (int i = 0; i < activities.length(); i++) {
-                            long anilistId = activities.getJSONObject(i).getJSONObject("user").getLong("id");
-                            List<Long> channelid = DatabaseHandler.getInstance().queryChannel(anilistId);
-                            for (long id : channelid) {
-                                MessageEmbed msg = buildMsg(activities.getJSONObject(i));
-                                allMsg.computeIfAbsent(id, k -> new ArrayList<>()).add(msg);
-                            }
-                        }
+                        iterateSinglePage(allMsg, activities);
                     }
                 }
 
                 for (long id: allMsg.keySet()) {
                     TextChannel channel = api.getTextChannelById(id);
                     if (channel != null) {
-                        channel.sendMessageEmbeds(allMsg.get(id)).completeAfter(500, TimeUnit.MILLISECONDS);
+                        MessageCreateBuilder newMsg = new MessageCreateBuilder()
+                                .setEmbeds(allMsg.get(id))
+                                .setSuppressedNotifications(true);
+
+                        channel.sendMessage(newMsg.build()).completeAfter(500, TimeUnit.MILLISECONDS);
                     }
                 }
             } catch (Exception e) {
@@ -87,6 +77,20 @@ public class AniListRunner {
         variable.put("page", 1);
         variable.put("time", Instant.now().getEpochSecond() - 15);
         return variable;
+    }
+
+    private static void iterateSinglePage(@NonNull Map<Long, Collection<MessageEmbed>> allMsg, @NonNull JSONArray activities) throws SQLException {
+        for (int i = 0; i < activities.length(); i++) {
+            long anilistId = activities.getJSONObject(i).getJSONObject("user").getLong("id");
+            List<Long> channelid = DatabaseHandler.getInstance().queryChannel(anilistId);
+            for (long id : channelid) {
+                // TODO: Better Check
+                if (!activities.getJSONObject(i).getBoolean("isAdult")) {
+                    MessageEmbed msg = buildMsg(activities.getJSONObject(i));
+                    allMsg.computeIfAbsent(id, k -> new ArrayList<>()).add(msg);
+                }
+            }
+        }
     }
 
     @NonNull

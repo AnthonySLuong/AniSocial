@@ -20,13 +20,12 @@ public class Listener extends ListenerAdapter {
 
     @Override
     public void onReady(@NotNull ReadyEvent event) {
-        String login = String.format("%s Logged in!", event.getJDA().getSelfUser().getName());
-        LOGGER.info(login);
+        LOGGER.info("{} Logged in!", event.getJDA().getSelfUser().getName());
     }
 
     @Override
     public void onCommandAutoCompleteInteraction(@NotNull CommandAutoCompleteInteractionEvent event) {
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -34,30 +33,29 @@ public class Listener extends ListenerAdapter {
         String commmandString = event.getCommandString();
         String username = event.getUser().getName();
         long userid = event.getUser().getIdLong();
-        String logExecute = String.format("Command received => %s by %s (%d)", commmandString, username, userid);
-        LOGGER.info(logExecute);
+        LOGGER.info("Command received => {} by {} ({})", commmandString, username, userid);
 
         String commandName = event.getInteraction().getName().toLowerCase();
         if (this.commands.containsKey(commandName)) {
             try {
                 this.commands.get(commandName).execute(event);
-                LOGGER.info(String.format("Command executed => %s by %s (%d)", commmandString, username, userid));
+                LOGGER.info("Command executed => {} by {} ({})", commmandString, username, userid);
             } catch (Exception e) {
                 if (event.isAcknowledged()) {
-                    event.getHook().editOriginal(String.format("Bot couldn't execute %s", commmandString)).queue();
+                    event.getHook().editOriginalFormat("Bot couldn't execute %s", commmandString).queue();
                 } else {
-                    event.reply(String.format("Bot couldn't execute %s", commmandString)).setEphemeral(true).queue();
+                    event.replyFormat("Bot couldn't execute %s", commmandString).setEphemeral(true).queue();
                 }
-                LOGGER.warn(String.format("Bot couldn't execute %s", commmandString), e);
+                LOGGER.warn(e.getMessage(), e);
             }
         } else {
-            event.reply(String.format("Invalid command! %s", commmandString)).setEphemeral(true).queue();
-            LOGGER.error(String.format("Invalid command! %s", commmandString));
+            event.replyFormat("Invalid command! %s", commmandString).setEphemeral(true).queue();
+            LOGGER.error("Invalid command! {}", commmandString);
         }
     }
 
     @Override
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
-
+        throw new UnsupportedOperationException();
     }
 }

@@ -41,7 +41,7 @@ public class DatabaseHandler {
             throw new SQLException("Database not initialized");
         }
         this.con = DriverManager.getConnection(url, username, password);
-        LOGGER.info(String.format("Connected to database: %s", url));
+        LOGGER.info("Connected to database: {}", url);
         return this;
     }
 

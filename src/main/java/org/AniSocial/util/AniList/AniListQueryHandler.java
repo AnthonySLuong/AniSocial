@@ -20,12 +20,12 @@ public class AniListQueryHandler {
                 .post(body)
                 .build();
 
-        LOGGER.info(String.format("Sending Request of %s", payload));
+        LOGGER.info("Sending Request of {}", payload);
         try (Response response = CLIENT.newCall(request).execute()) {
             if (response.isSuccessful() && response.body() != null) {
                 return new JSONObject(response.body().string()).getJSONObject("data");
             }
-            LOGGER.warn(String.format("Received response but not valid: %s", response));
+            LOGGER.warn("Received response but not valid: {}", response);
         } catch (Exception e) {
             LOGGER.warn(e.getMessage(), e);
         }

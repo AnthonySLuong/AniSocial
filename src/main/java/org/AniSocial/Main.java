@@ -51,10 +51,10 @@ public class Main {
         if (guildid != null) {
             Guild guild = api.getGuildById(guildid);
             if (guild != null) {
-                LOGGER.info(String.format("Updating guild Commands %s", guild.getName()));
+                LOGGER.info("Updating guild Commands {}", guild.getName());
                 guild.updateCommands().addCommands(commandsData).queue();
             } else {
-                LOGGER.warn(String.format("Could not find guild %s", guildid));
+                LOGGER.warn("Could not find guild {}}", guildid);
             }
         }
 
