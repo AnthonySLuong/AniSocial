@@ -85,7 +85,7 @@ public class AniListRunner {
             List<Long> channelid = DatabaseHandler.getInstance().queryChannel(anilistId);
             for (long id : channelid) {
                 // TODO: Better Check
-                if (!activities.getJSONObject(i).getBoolean("isAdult")) {
+                if (!activities.getJSONObject(i).getJSONObject("media").getBoolean("isAdult")) {
                     MessageEmbed msg = buildMsg(activities.getJSONObject(i));
                     allMsg.computeIfAbsent(id, k -> new ArrayList<>()).add(msg);
                 }
