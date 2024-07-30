@@ -1,14 +1,10 @@
-package org.AniSocial.subcommands;
+package org.AniSocial.commands;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
-import org.AniSocial.interfaces.SubCommandInterface;
+import org.AniSocial.interfaces.Command;
 import org.AniSocial.util.AniList.AniListQueryType;
 import org.AniSocial.util.DatabaseHandler;
 import org.AniSocial.util.AniList.AniListQueryHandler;
@@ -19,17 +15,9 @@ import org.slf4j.LoggerFactory;
 import java.sql.SQLException;
 import java.util.Objects;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class User implements SubCommandInterface {
+public class User extends Command {
     private static final Logger LOGGER = LoggerFactory.getLogger(User.class);
-    private static User user = null;
 
-    @Override
-    public void onCommandAutoCompleteInteraction(@NonNull CommandAutoCompleteInteractionEvent event) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
     public void onSlashCommandInteraction(@NonNull SlashCommandInteractionEvent event) {
         event.deferReply(true).queue(hook -> {
             // Require event
@@ -63,32 +51,31 @@ public class User implements SubCommandInterface {
                         break;
                 }
             } catch (SQLException e) {
-                if (LOGGER.isWarnEnabled()) {
-                    LOGGER.warn(e.getLocalizedMessage(), e);
-                }
+                LOGGER.warn(e.getLocalizedMessage(), e);
             }
 
             hook.editOriginal(msg).queue();
         });
     }
 
-    @Override
-    public void onButtonInteraction(@NonNull ButtonInteractionEvent event) throws Exception {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
     @NonNull
-    @Override
-    public SubcommandData getSubcommandData() {
+    public static SubcommandData getSubcommandData() {
         return new SubcommandData("user", "user")
                 .addOption(OptionType.STRING, "user", "AniList Username or Anilist Profile Link", true);
     }
 
-    @NonNull
-    synchronized public static User getInstance() {
-        if (user == null) {
-            user = new User();
-        }
-        return user;
+    @Override
+    public void executeCommandAutoComplete() throws Exception {
+
+    }
+
+    @Override
+    public void executeSlashCommand() throws Exception {
+
+    }
+
+    @Override
+    public void executeButtonInteraction() throws Exception {
+
     }
 }

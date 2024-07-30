@@ -10,23 +10,22 @@ import org.slf4j.LoggerFactory;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class DatabaseHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseHandler.class);
-    private static final String addChannelQuery = "INSERT INTO channels VALUES (?, ?, ?, ?, NOW(), ?)";
-    private static final String deleteChannelQuery = "DELETE FROM channels WHERE channel_id = ?";
-    private static final String addUserQuery = "INSERT INTO users VALUES (?, ?, ?, ?, ?, NOW())";
-    private static final String deleteUserQuery = "DELETE FROM users WHERE anilist_name = ? AND channel_id = ?";
-    private static final String anilistIdQuery = "SELECT DISTINCT anilist_id FROM USERS";
-    private static final String channelIdQuery = "SELECT channel_id FROM USERS WHERE anilist_id = ?";
-
     private static DatabaseHandler databaseHandler = null;
 
     private Connection con;
     private String url, username, password;
 
+    /**
+     * Set database instance url, username and password
+     * @param url Database URL
+     * @param username Database username
+     * @param password Database password
+     * @return instance of itself
+     */
     @NonNull
     public DatabaseHandler init(@NonNull String url, @NonNull String username, @NonNull String password) {
         this.url = url;
@@ -35,6 +34,11 @@ public class DatabaseHandler {
         return this;
     }
 
+    /**
+     * Connects to Databases
+     * @return instance of itself
+     * @throws SQLException If url, username, and password not initialize first
+     */
     @NonNull
     public DatabaseHandler connect() throws SQLException {
         if (this.url == null || this.username == null || this.password == null) {
@@ -45,17 +49,15 @@ public class DatabaseHandler {
         return this;
     }
 
-    public boolean isValid() throws SQLException {
-        if (this.con == null) {
-            return false;
-        }
-        return this.con.isValid(0);
-    }
-
+    /**
+     * Query a List of UserIds to check for updates
+     * @return List of UserIds
+     * @throws SQLException Any SQLException
+     */
     @NonNull
-    public List<Long> queryUser() throws SQLException {
+    public List<Long> listofUserIds() throws SQLException {
         List<Long> id = new ArrayList<>();
-        try (PreparedStatement statement = this.con.prepareStatement(anilistIdQuery)) {
+        try (PreparedStatement statement = this.con.prepareStatement("SELECT DISTINCT anilist_id FROM USERS")) {
             ResultSet result = statement.executeQuery();
 
             while (result.next()) {
@@ -66,11 +68,38 @@ public class DatabaseHandler {
         return id;
     }
 
+    /**
+     * Query a List of UserIds that belong to channel ID
+     * @param channelId
+     * @return List of UserIds
+     * @throws SQLException Any SQLException
+     */
     @NonNull
-    public List<Long> queryChannel(long userId) throws SQLException {
+    public List<String> listofUserIds(long channelId) throws SQLException {
+        List<String> id = new ArrayList<>();
+        try (PreparedStatement statement = this.con.prepareStatement("SELECT anilist_name FROM USERS WHERE channel_id = ?")) {
+            statement.setLong(1, channelId);
+            ResultSet result = statement.executeQuery();
+
+            while (result.next()) {
+                id.add(result.getString(1));
+            }
+        }
+
+        return id;
+    }
+
+    /**
+     * Query a list of channel Ids that the userId belong in
+     * @param userId UserId
+     * @return List of channel Ids
+     * @throws SQLException Any SQLException
+     */
+    @NonNull
+    public List<Long> channelIdsOfUser(long userId) throws SQLException {
         List<Long> channelId = new ArrayList<>();
 
-        try (PreparedStatement statement = this.con.prepareStatement(channelIdQuery)) {
+        try (PreparedStatement statement = this.con.prepareStatement("SELECT channel_id FROM USERS WHERE anilist_id = ?")) {
             statement.setLong(1, userId);
             ResultSet result = statement.executeQuery();
 
@@ -81,26 +110,53 @@ public class DatabaseHandler {
         return channelId;
     }
 
-    public int addChannelId(@NonNull SlashCommandInteractionEvent event) throws SQLException {
-        try (PreparedStatement statement = this.con.prepareStatement(addChannelQuery)) {
-            statement.setLong(1, event.getChannelIdLong());
-            statement.setString(2, event.getChannel().getName());
-            statement.setLong(3, Objects.requireNonNull(event.getGuild()).getIdLong());
-            statement.setString(4, event.getGuild().getName());
-            statement.setLong(5, event.getInteraction().getUser().getIdLong());
+    /**
+     * Check if channel ID is already added to database
+     * @param channelId channel id
+     * @return True if exist otherwise false
+     * @throws SQLException Any SQLException
+     */
+    public boolean containChannelId(long channelId) throws SQLException {
+        try (PreparedStatement statement = this.con.prepareStatement("SELECT COUNT(channel_id) FROM channels WHERE channel_id = ?")) {
+            statement.setLong(1, channelId);
+            ResultSet result = statement.executeQuery();
+
+            if (result.next()) {
+                return result.getInt(1) > 0;
+            }
+        }
+        return false;
+    }
+
+    public int addChannelId(long channelId, String channelName, long guildId, String guildName, long userId,
+                            boolean suppress) throws SQLException {
+
+        try (PreparedStatement statement = this.con.prepareStatement(
+                "INSERT INTO channels VALUES (?, ?, ?, ?, NOW(), ?, ?)")) {
+            statement.setLong(1, channelId);
+            statement.setString(2, channelName);
+            statement.setLong(3, guildId);
+            statement.setString(4, guildName);
+            statement.setLong(5, userId);
+            statement.setBoolean(6, suppress);
             return statement.executeUpdate();
         }
     }
 
     public int removeChannelId(long channelId) throws SQLException {
-        try (PreparedStatement statement = this.con.prepareStatement(deleteChannelQuery)) {
+        try (PreparedStatement statement = this.con.prepareStatement("DELETE FROM users WHERE channel_id = ?")) {
+            statement.setLong(1, channelId);
+            statement.executeUpdate();
+        }
+
+        try (PreparedStatement statement = this.con.prepareStatement("DELETE FROM channels WHERE channel_id = ?")) {
             statement.setLong(1, channelId);
             return statement.executeUpdate();
         }
     }
 
     public int addUser(long id, @NonNull String name, @NonNull String siteUrl, @NonNull SlashCommandInteractionEvent event) throws SQLException {
-        try (PreparedStatement statement = this.con.prepareStatement(addUserQuery)) {
+        try (PreparedStatement statement = this.con.prepareStatement("INSERT INTO users VALUES (?, ?, ?, ?, ?, NOW())")) {
             statement.setLong(1, id);
             statement.setString(2, name.toLowerCase());
             statement.setString(3, siteUrl);
@@ -112,7 +168,7 @@ public class DatabaseHandler {
     }
 
     public int removeUser(@NonNull String user, long channelId) throws SQLException {
-        try (PreparedStatement statement = this.con.prepareStatement(deleteUserQuery)) {
+        try (PreparedStatement statement = this.con.prepareStatement("DELETE FROM users WHERE anilist_name = ? AND channel_id = ?")) {
             statement.setString(1, user.toLowerCase());
             statement.setLong(2, channelId);
             return statement.executeUpdate();
@@ -123,6 +179,8 @@ public class DatabaseHandler {
     public static synchronized DatabaseHandler getInstance() throws SQLException {
         if (databaseHandler == null) {
             databaseHandler = new DatabaseHandler();
+        } else if (databaseHandler.con.isClosed()) {
+            databaseHandler.connect();
         }
         return databaseHandler;
     }

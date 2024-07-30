@@ -71,7 +71,7 @@ public class AniListRunner {
 
     @NonNull
     private static JSONObject getVariables() throws SQLException {
-        List<Long> userId = DatabaseHandler.getInstance().queryUser();
+        List<Long> userId = DatabaseHandler.getInstance().listofUserIds();
         JSONObject variable = new JSONObject();
         variable.put("userids", userId);
         variable.put("page", 1);
@@ -82,7 +82,7 @@ public class AniListRunner {
     private static void iterateSinglePage(@NonNull Map<Long, Collection<MessageEmbed>> allMsg, @NonNull JSONArray activities) throws SQLException {
         for (int i = 0; i < activities.length(); i++) {
             long anilistId = activities.getJSONObject(i).getJSONObject("user").getLong("id");
-            List<Long> channelid = DatabaseHandler.getInstance().queryChannel(anilistId);
+            List<Long> channelid = DatabaseHandler.getInstance().channelIdsOfUser(anilistId);
             for (long id : channelid) {
                 // TODO: Better Check
                 if (!activities.getJSONObject(i).getJSONObject("media").getBoolean("isAdult")) {
