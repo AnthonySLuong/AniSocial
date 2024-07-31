@@ -16,7 +16,15 @@ public class CommandData {
                                 new SubcommandData("add", "Add text channels where the bot is allowed to send updates")
                                         .addOption(OptionType.BOOLEAN, "suppress","Whether to send notification silently"),
                                 new SubcommandData("remove", "Remove text channels where the bot is allowed to send updates")
-                        )
+                        ),
+
+                Commands.slash("user", "Add or remove text channels where the bot is allowed to send updates")
+                    .addSubcommands(
+                            new SubcommandData("add", "Add user")
+                                    .addOption(OptionType.STRING, "user", "AniList Username", true),
+                            new SubcommandData("remove", "Remove user")
+                                    .addOption(OptionType.STRING, "user", "AniList Username", true)
+                    )
         ));
     }
 }

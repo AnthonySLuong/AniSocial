@@ -3,7 +3,6 @@ package org.AniSocial.util;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,6 +127,17 @@ public class DatabaseHandler {
         return false;
     }
 
+    /**
+     * Add Channel Meta Data to Database
+     * @param channelId Channel ID
+     * @param channelName Channel Name
+     * @param guildId Guild ID
+     * @param guildName Guild Name
+     * @param userId User ID
+     * @param suppress Suppress Message sent to the channel
+     * @return Number of row affected
+     * @throws SQLException Any SQLException
+     */
     public int addChannelId(long channelId, String channelName, long guildId, String guildName, long userId,
                             boolean suppress) throws SQLException {
 
@@ -155,13 +165,23 @@ public class DatabaseHandler {
         }
     }
 
-    public int addUser(long id, @NonNull String name, @NonNull String siteUrl, @NonNull SlashCommandInteractionEvent event) throws SQLException {
+    /**
+     * Add User metadata associated with channel ID
+     * @param id AniList ID
+     * @param name AniList Name
+     * @param siteUrl AniList Site URL
+     * @param channelID Channel ID
+     * @param addedBy User ID
+     * @return Number of row affected
+     * @throws SQLException
+     */
+    public int addUser(long id, @NonNull String name, @NonNull String siteUrl, long channelID, long addedBy) throws SQLException {
         try (PreparedStatement statement = this.con.prepareStatement("INSERT INTO users VALUES (?, ?, ?, ?, ?, NOW())")) {
             statement.setLong(1, id);
             statement.setString(2, name.toLowerCase());
             statement.setString(3, siteUrl);
-            statement.setLong(4, event.getChannelIdLong());
-            statement.setLong(5, event.getInteraction().getUser().getIdLong());
+            statement.setLong(4, channelID);
+            statement.setLong(5, addedBy);
 
             return statement.executeUpdate();
         }

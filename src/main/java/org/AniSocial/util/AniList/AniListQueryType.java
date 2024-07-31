@@ -42,7 +42,7 @@ public enum AniListQueryType {
                     }
                 }
             }
-            """.trim().replaceAll("([\\n\\t]| {2,})", " ")),
+            """.trim().replaceAll("\\s{2,}", " ")),
     USER("""
             query ($user: String) {
                 User (search: $user) {
@@ -51,7 +51,7 @@ public enum AniListQueryType {
                     siteUrl
                 }
             }
-            """.trim().replaceAll("([\\n\\t]| {2,})", " "));
+            """.trim().replaceAll("\\s{2,}", " "));
 
     @NonNull private final String query;
 }

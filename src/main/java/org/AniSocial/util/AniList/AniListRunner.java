@@ -27,11 +27,10 @@ public class AniListRunner {
     private static AniListRunner aniListRunner = null;
 
     public void run(@NonNull JDA api) {
-        ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
         Runnable task = () -> {
+            Map<Long, Collection<MessageEmbed>> allMsg = new HashMap<>();
             try {
-                Map<Long, Collection<MessageEmbed>> allMsg = new HashMap<>();
-                JSONObject variable = getVariables();
+                JSONObject variable = getUsers();
                 JSONObject response = AniListQueryHandler.query(AniListQueryType.LIST, variable);
 
                 if (response != null) {
@@ -55,6 +54,7 @@ public class AniListRunner {
                     if (channel != null) {
                         MessageCreateBuilder newMsg = new MessageCreateBuilder()
                                 .setEmbeds(allMsg.get(id))
+                                //TODO: Check for Suppressed Notifications
                                 .setSuppressedNotifications(true);
 
                         channel.sendMessage(newMsg.build()).completeAfter(500, TimeUnit.MILLISECONDS);
@@ -65,12 +65,23 @@ public class AniListRunner {
             }
         };
 
-        executorService.scheduleAtFixedRate(task, 0, 15, TimeUnit.SECONDS);
-        LOGGER.info("Starting AniSocialRunner");
+        try (ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1)) {
+            executorService.scheduleAtFixedRate(task, 0, 15, TimeUnit.SECONDS);
+            LOGGER.info("Starting AniSocialRunner");
+        }
     }
 
+    // ============================
+    // Private Helper Methods
+    // ============================
+
+    /**
+     * Query List of User added to database
+     * @return JSON of Variable for graphQL
+     * @throws SQLException Any SQLException
+     */
     @NonNull
-    private static JSONObject getVariables() throws SQLException {
+    private static JSONObject getUsers() throws SQLException {
         List<Long> userId = DatabaseHandler.getInstance().listofUserIds();
         JSONObject variable = new JSONObject();
         variable.put("userids", userId);
@@ -79,6 +90,12 @@ public class AniListRunner {
         return variable;
     }
 
+    /**
+     * Iterate a single activity page and build each message
+     * @param allMsg Collection of message grouped by channel ID
+     * @param activities Single page of Activity
+     * @throws SQLException Any SQLException
+     */
     private static void iterateSinglePage(@NonNull Map<Long, Collection<MessageEmbed>> allMsg, @NonNull JSONArray activities) throws SQLException {
         for (int i = 0; i < activities.length(); i++) {
             long anilistId = activities.getJSONObject(i).getJSONObject("user").getLong("id");
@@ -93,6 +110,11 @@ public class AniListRunner {
         }
     }
 
+    /**
+     * Build each Activity Update into Embedded Message
+     * @param msg Message
+     * @return Embedded Message
+     */
     @NonNull
     private static MessageEmbed buildMsg(@NonNull JSONObject msg) {
         JSONObject user =  msg.getJSONObject("user");
@@ -126,6 +148,11 @@ public class AniListRunner {
         return embed.build();
     }
 
+    /**
+     * Capitalized Each Word, Split by whitespace
+     * @param input String
+     * @return String where each word is capitalized
+     */
     @NonNull
     private static String capitalizeEachWord(@NonNull String input) {
         if (input.isEmpty()) {
@@ -145,6 +172,10 @@ public class AniListRunner {
         return capitalized.toString().trim();
     }
 
+    /**
+     * Singleton Instance of AniList Runner
+     * @return Instance of AniList Runner
+     */
     @NonNull
     public static AniListRunner getInstance() {
         if (aniListRunner == null) {
