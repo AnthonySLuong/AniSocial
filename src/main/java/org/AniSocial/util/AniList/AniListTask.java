@@ -21,19 +21,20 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class AniListTask implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(AniListTask.class);
-    private final Map<Long, Collection<MessageEmbed>> allMsg = new HashMap<>();
     private final JDA api;
 
     @Override
     public void run() {
+        Map<Long, Collection<MessageEmbed>> msg = new HashMap<>();
+        List<JSONObject> users = new ArrayList<>();
+
         try {
             JSONObject variable = getUsers();
             JSONObject response = AniListQueryHandler.query(AniListQueryType.LIST, variable);
 
             if (response != null) {
                 JSONObject data = response.getJSONObject("Page");
-                JSONArray activities = data.getJSONArray("activities");
-                iterateSinglePage(this.allMsg, activities);
+                getUserActivities(users, data.getJSONArray("activities"));
 
                 while (data.getJSONObject("pageInfo").getBoolean("hasNextPage")) {
                     variable.increment("page");
@@ -41,30 +42,57 @@ public class AniListTask implements Runnable {
                     do {
                         response = AniListQueryHandler.query(AniListQueryType.LIST, variable);
                     } while (response == null);
-
-                    iterateSinglePage(this.allMsg, activities);
+                    data = response.getJSONObject("Page");
+                    getUserActivities(users, data.getJSONArray("activities"));
                 }
             }
-
-            for (long id: this.allMsg.keySet()) {
-                TextChannel channel = this.api.getTextChannelById(id);
-                if (channel != null) {
-                    MessageCreateBuilder newMsg = new MessageCreateBuilder()
-                            .setEmbeds(this.allMsg.get(id))
-                            //TODO: Check for Suppressed Notifications
-                            .setSuppressedNotifications(true);
-
-                    channel.sendMessage(newMsg.build()).completeAfter(500, TimeUnit.MILLISECONDS);
-                }
-            }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             LOGGER.warn(e.getMessage(), e);
+        }
+
+        for (JSONObject user: users) {
+            long anilistID = user.getJSONObject("user").getLong("id");
+            try {
+                List<Long> channelIDs = DatabaseHandler.getInstance().channelIdsOfUser(anilistID);
+                for (long id : channelIDs) {
+                    // TODO: Better Check
+                    if (!user.getJSONObject("media").getBoolean("isAdult")) {
+                        MessageEmbed embed = buildMsg(user);
+                        msg.computeIfAbsent(id, k -> new ArrayList<>()).add(embed);
+                    }
+                }
+            } catch (SQLException e) {
+                LOGGER.warn(e.getMessage(), e);
+            }
+        }
+
+        for (long id: msg.keySet()) {
+            TextChannel channel = this.api.getTextChannelById(id);
+            if (channel != null) {
+                MessageCreateBuilder newMsg = new MessageCreateBuilder()
+                        .setEmbeds(msg.get(id))
+                        //TODO: Check for Suppressed Notifications
+                        .setSuppressedNotifications(true);
+
+                channel.sendMessage(newMsg.build()).completeAfter(500, TimeUnit.MILLISECONDS);
+            }
         }
     }
 
     // ============================
     // Private Helper Methods
     // ============================
+
+    /**
+     * Put all of User Activities into a List
+     * @param activities Array of all User Activities
+     */
+    private static void getUserActivities(@NonNull List<JSONObject> users, @NonNull JSONArray activities) {
+        for (int i = 0; i < activities.length(); i++) {
+            JSONObject activity = activities.getJSONObject(i);
+            users.add(activity);
+        }
+    }
 
     /**
      * Query List of User added to database
@@ -79,27 +107,6 @@ public class AniListTask implements Runnable {
         variable.put("page", 1);
         variable.put("time", Instant.now().getEpochSecond() - 15);
         return variable;
-    }
-
-    /**
-     * Iterate a single activity page and build each message
-     * @param allMsg Collection of message grouped by channel ID
-     * @param activities Single page of Activity
-     * @throws SQLException Any SQLException
-     */
-    private static void iterateSinglePage(@NonNull Map<Long, Collection<MessageEmbed>> allMsg,
-                                          @NonNull JSONArray activities) throws SQLException {
-        for (int i = 0; i < activities.length(); i++) {
-            long anilistId = activities.getJSONObject(i).getJSONObject("user").getLong("id");
-            List<Long> channelid = DatabaseHandler.getInstance().channelIdsOfUser(anilistId);
-            for (long id : channelid) {
-                // TODO: Better Check
-                if (!activities.getJSONObject(i).getJSONObject("media").getBoolean("isAdult")) {
-                    MessageEmbed msg = buildMsg(activities.getJSONObject(i));
-                    allMsg.computeIfAbsent(id, k -> new ArrayList<>()).add(msg);
-                }
-            }
-        }
     }
 
     /**

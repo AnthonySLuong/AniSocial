@@ -6,6 +6,9 @@ import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInterac
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
+import net.dv8tion.jda.api.events.session.SessionDisconnectEvent;
+import net.dv8tion.jda.api.events.session.SessionRecreateEvent;
+import net.dv8tion.jda.api.events.session.SessionResumeEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.utils.messages.MessageEditBuilder;
 import org.AniSocial.interfaces.Command;
@@ -26,12 +29,27 @@ public class Listener extends ListenerAdapter {
 
     @Override
     public void onReady(@NotNull ReadyEvent event) {
-        LOGGER.info("{} Logged in!", event.getJDA().getSelfUser().getName());
+        LOGGER.info("{} is ready!", event.getJDA().getSelfUser().getName());
 
         try (ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1)) {
             executorService.scheduleAtFixedRate(new AniListTask(event.getJDA()), 0, 15, TimeUnit.SECONDS);
-            LOGGER.info("Started AniSocialRunner");
+            LOGGER.info("Started AniList Task");
         }
+    }
+
+    @Override
+    public void onSessionDisconnect(@NotNull SessionDisconnectEvent event) {
+
+    }
+
+    @Override
+    public void onSessionRecreate(@NotNull SessionRecreateEvent event) {
+
+    }
+
+    @Override
+    public void onSessionResume(@NotNull SessionResumeEvent event) {
+
     }
 
     @Override
