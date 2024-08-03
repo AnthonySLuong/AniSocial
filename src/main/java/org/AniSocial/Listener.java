@@ -9,10 +9,13 @@ import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.utils.messages.MessageEditBuilder;
 import org.AniSocial.interfaces.Command;
+import org.AniSocial.util.AniList.AniListTask;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class Listener extends ListenerAdapter {
@@ -24,6 +27,11 @@ public class Listener extends ListenerAdapter {
     @Override
     public void onReady(@NotNull ReadyEvent event) {
         LOGGER.info("{} Logged in!", event.getJDA().getSelfUser().getName());
+
+        try (ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1)) {
+            executorService.scheduleAtFixedRate(new AniListTask(event.getJDA()), 0, 15, TimeUnit.SECONDS);
+            LOGGER.info("Started AniSocialRunner");
+        }
     }
 
     @Override
@@ -34,13 +42,18 @@ public class Listener extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         LOGGER.info("Received Command => {} by {}", event.getCommandString(), event.getUser().getName());
+
         String commandName = event.getInteraction().getName();
         commandName = commandName.substring(0, 1).toUpperCase() + commandName.substring(1);
 
         try {
             Class<?> command = Class.forName("org.AniSocial.commands." + commandName);
-            Command instance = (Command) command.getDeclaredConstructor().newInstance();
-            instance.setSlashEvent(event).executeSlashCommand();
+            Command instance = (Command) command.getDeclaredConstructor()
+                    .newInstance();
+
+            instance.setSlashEvent(event)
+                    .executeSlashCommand();
+
             this.cache.put(event.getId(), instance);
             LOGGER.info("Executed Command => {} by {}", event.getCommandString(), event.getUser().getName());
         } catch (Exception e) {

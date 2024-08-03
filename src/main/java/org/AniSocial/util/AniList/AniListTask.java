@@ -1,8 +1,7 @@
 package org.AniSocial.util.AniList;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -17,57 +16,49 @@ import org.slf4j.LoggerFactory;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class AniListRunner {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AniListRunner.class);
-    private static AniListRunner aniListRunner = null;
+@RequiredArgsConstructor
+public class AniListTask implements Runnable {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AniListTask.class);
+    private final Map<Long, Collection<MessageEmbed>> allMsg = new HashMap<>();
+    private final JDA api;
 
-    public void run(@NonNull JDA api) {
-        Runnable task = () -> {
-            Map<Long, Collection<MessageEmbed>> allMsg = new HashMap<>();
-            try {
-                JSONObject variable = getUsers();
-                JSONObject response = AniListQueryHandler.query(AniListQueryType.LIST, variable);
+    @Override
+    public void run() {
+        try {
+            JSONObject variable = getUsers();
+            JSONObject response = AniListQueryHandler.query(AniListQueryType.LIST, variable);
 
-                if (response != null) {
-                    JSONObject data = response.getJSONObject("Page");
-                    JSONArray activities = data.getJSONArray("activities");
-                    iterateSinglePage(allMsg, activities);
+            if (response != null) {
+                JSONObject data = response.getJSONObject("Page");
+                JSONArray activities = data.getJSONArray("activities");
+                iterateSinglePage(this.allMsg, activities);
 
-                    while (data.getJSONObject("pageInfo").getBoolean("hasNextPage")) {
-                        variable.increment("page");
+                while (data.getJSONObject("pageInfo").getBoolean("hasNextPage")) {
+                    variable.increment("page");
 
-                        do {
-                            response = AniListQueryHandler.query(AniListQueryType.LIST, variable);
-                        } while (response == null);
+                    do {
+                        response = AniListQueryHandler.query(AniListQueryType.LIST, variable);
+                    } while (response == null);
 
-                        iterateSinglePage(allMsg, activities);
-                    }
+                    iterateSinglePage(this.allMsg, activities);
                 }
-
-                for (long id: allMsg.keySet()) {
-                    TextChannel channel = api.getTextChannelById(id);
-                    if (channel != null) {
-                        MessageCreateBuilder newMsg = new MessageCreateBuilder()
-                                .setEmbeds(allMsg.get(id))
-                                //TODO: Check for Suppressed Notifications
-                                .setSuppressedNotifications(true);
-
-                        channel.sendMessage(newMsg.build()).completeAfter(500, TimeUnit.MILLISECONDS);
-                    }
-                }
-            } catch (Exception e) {
-                LOGGER.warn(e.getMessage(), e);
             }
-        };
 
-        try (ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1)) {
-            executorService.scheduleAtFixedRate(task, 0, 15, TimeUnit.SECONDS);
-            LOGGER.info("Starting AniSocialRunner");
+            for (long id: this.allMsg.keySet()) {
+                TextChannel channel = this.api.getTextChannelById(id);
+                if (channel != null) {
+                    MessageCreateBuilder newMsg = new MessageCreateBuilder()
+                            .setEmbeds(this.allMsg.get(id))
+                            //TODO: Check for Suppressed Notifications
+                            .setSuppressedNotifications(true);
+
+                    channel.sendMessage(newMsg.build()).completeAfter(500, TimeUnit.MILLISECONDS);
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.warn(e.getMessage(), e);
         }
     }
 
@@ -96,7 +87,8 @@ public class AniListRunner {
      * @param activities Single page of Activity
      * @throws SQLException Any SQLException
      */
-    private static void iterateSinglePage(@NonNull Map<Long, Collection<MessageEmbed>> allMsg, @NonNull JSONArray activities) throws SQLException {
+    private static void iterateSinglePage(@NonNull Map<Long, Collection<MessageEmbed>> allMsg,
+                                          @NonNull JSONArray activities) throws SQLException {
         for (int i = 0; i < activities.length(); i++) {
             long anilistId = activities.getJSONObject(i).getJSONObject("user").getLong("id");
             List<Long> channelid = DatabaseHandler.getInstance().channelIdsOfUser(anilistId);
@@ -170,17 +162,5 @@ public class AniListRunner {
         }
 
         return capitalized.toString().trim();
-    }
-
-    /**
-     * Singleton Instance of AniList Runner
-     * @return Instance of AniList Runner
-     */
-    @NonNull
-    public static AniListRunner getInstance() {
-        if (aniListRunner == null) {
-            aniListRunner = new AniListRunner();
-        }
-        return new AniListRunner();
     }
 }

@@ -4,7 +4,6 @@ import lombok.NonNull;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Guild;
-import org.AniSocial.util.AniList.AniListRunner;
 import org.AniSocial.util.CommandData;
 import org.AniSocial.util.DatabaseHandler;
 import org.slf4j.Logger;
@@ -23,15 +22,17 @@ public class Main {
         boolean global = Boolean.parseBoolean(System.getenv("GLOBAL"));
         String guildid = System.getenv("GUILDID");
 
-        DatabaseHandler.getInstance().init(url, username, password).connect();
+        DatabaseHandler.getInstance().init(url.trim(), username.trim(), password.trim()).connect();
 
-        JDA api = JDABuilder.createDefault(token)
+        JDA api = JDABuilder.createDefault(token.trim())
+                .setAutoReconnect(true)
+                .setRequestTimeoutRetry(true)
                 .addEventListeners(new Listener())
                 .build()
                 .awaitReady();
 
         if (guildid != null) {
-            Guild guild = api.getGuildById(guildid);
+            Guild guild = api.getGuildById(guildid.trim());
             if (guild != null) {
                 guild.updateCommands().addCommands(CommandData.getCommandData()).queue();
                 LOGGER.info("Updated guild Commands {}", guild.getName());
@@ -44,7 +45,5 @@ public class Main {
             api.updateCommands().addCommands(CommandData.getCommandData()).queue();
             LOGGER.info("Updated global Commands");
         }
-
-        AniListRunner.getInstance().run(api);
     }
 }
