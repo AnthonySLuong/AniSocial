@@ -5,11 +5,12 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import net.dv8tion.jda.api.utils.messages.MessageEditBuilder;
 import org.AniSocial.interfaces.Command;
-import org.AniSocial.util.DatabaseHandler;
+import org.AniSocial.util.DBHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -23,9 +24,9 @@ public class Channel extends Command {
     }
 
     @Override
-    public void executeSlashCommand() {
+    public void executeSlashCommand() throws SQLException {
         if (this.slashEvent == null) {
-            throw new IllegalStateException("slashCommand is null");
+            throw new IllegalStateException("SlashCommand is null");
         }
 
         switch (Objects.requireNonNull(this.slashEvent.getSubcommandName()).toLowerCase()) {
@@ -40,32 +41,26 @@ public class Channel extends Command {
     }
 
     @Override
-    public void executeButtonInteraction() {
+    public void executeButtonInteraction() throws SQLException {
         if (this.buttonEvent == null) {
-            throw new IllegalStateException("buttonEvent is null");
+            throw new IllegalStateException("ButtonEvent is null");
         }
 
         MessageEditBuilder editData = MessageEditBuilder
                 .fromMessage(this.buttonEvent.getMessage())
                 .setComponents();
-        try {
-            DatabaseHandler database = DatabaseHandler.getInstance();
-            if (this.slashEvent.getSubcommandName().equalsIgnoreCase("remove") &&
-                this.buttonEvent.getComponent().getLabel().equalsIgnoreCase("yes")) {
-                database.removeChannelId(this.slashEvent.getChannelIdLong());
-                editData.setContent(
-                        String.format("Removed <#%s> as a notification channel", this.buttonEvent.getChannelId())
-                );
-            } else {
-                editData.setContent(
-                        String.format("Did not remove <#%s> as a notification channel", this.buttonEvent.getChannelId())
-                );
-            }
-        } catch (SQLException e) {
+
+        DBHandler database = DBHandler.getInstance();
+        if (this.slashEvent.getSubcommandName().equalsIgnoreCase("remove") &&
+                this.buttonEvent.getComponent().getLabel().equalsIgnoreCase("Remove")) {
+            database.removeChannelID(this.slashEvent.getChannelIdLong());
             editData.setContent(
-                    String.format("Could not remove <#%s> as a notification channel", this.buttonEvent.getChannelId())
+                    String.format("Removed <#%s> as a notification channel", this.buttonEvent.getChannelId())
             );
-            LOGGER.error(e.getLocalizedMessage(), e);
+        } else {
+            editData.setContent(
+                    String.format("Cancelled the removal of <#%s>", this.buttonEvent.getChannelId())
+            );
         }
 
         this.buttonEvent.editMessage(editData.build()).queue();
@@ -75,22 +70,17 @@ public class Channel extends Command {
     // Private Helper Methods
     // ============================
 
-    private void addChannel() {
+    private void addChannel() throws SQLException {
         MessageCreateBuilder msg = new MessageCreateBuilder()
-                .setSuppressedNotifications(true)
-                .setContent("Invalid Command");
+                .setSuppressedNotifications(true);
 
         boolean suppress = this.slashEvent.getOption("suppress") != null
                 ? this.slashEvent.getOption("suppress").getAsBoolean()
                 : false; // default
 
         try {
-            DatabaseHandler database = DatabaseHandler.getInstance();
-            if (database.containChannelId(this.slashEvent.getChannelIdLong())) {
-                throw new SQLException("Channel Id already exist", "23505");
-            }
-
-            database.addChannelId(
+            DBHandler db = DBHandler.getInstance();
+            db.addChannelId(
                     this.slashEvent.getChannelIdLong(),
                     this.slashEvent.getChannel().getName(),
                     Objects.requireNonNull(this.slashEvent.getGuild()).getIdLong(),
@@ -102,49 +92,45 @@ public class Channel extends Command {
             msg.setContent(
                     String.format("Added <#%s> as a notification channel", this.slashEvent.getChannelId())
             );
-
-            LOGGER.info("Added {} ({}) as a notification channel", this.slashEvent.getChannel().getName(), this.slashEvent.getChannelId());
         } catch (SQLException e) {
             if (e.getSQLState().equalsIgnoreCase("23505")) {
                 msg.setContent(
                         String.format("<#%s> already added as a notification channel", this.slashEvent.getChannelId())
                 );
             } else {
-                LOGGER.warn(e.getLocalizedMessage(), e);
+                throw e;
             }
         }
 
         this.slashEvent.reply(msg.build()).queue();
     }
 
-    private void removeChannel() {
-        //TODO: Add embedd paging of users
+    private void removeChannel() throws SQLException {
+        // TODO: Add embed paging of users
+        DBHandler db = DBHandler.getInstance();
         MessageCreateBuilder msg = new MessageCreateBuilder()
-                .setSuppressedNotifications(true)
-                .setContent("Invalid Command");
+                .setSuppressedNotifications(true);
 
-        List<String> list;
-        try {
-            DatabaseHandler databaseHandler = DatabaseHandler.getInstance();
-            list = databaseHandler.listofUserIds(this.slashEvent.getChannelIdLong());
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+        if (!db.containChannelID(this.slashEvent.getChannelIdLong())) {
+            msg.setContent(
+                    String.format("<#%s> is not a notification channel", this.slashEvent.getChannelId())
+            );
+        } else {
+            List<String> users = new ArrayList<>(db.listofUserIds(this.slashEvent.getChannelIdLong()));
 
-        if (list != null) {
             msg.setContent(
                     String.format("Are you sure you want to remove <#%s> as a notification channel?\n" +
                                     "%d user(s) will be remove from this channel too",
                             this.slashEvent.getChannelId(),
-                            list.size()
+                            users.size()
                     )
             );
-        }
 
-        msg.addActionRow(
-                Button.success("yes-" + this.slashEvent.getId(), "Yes"),
-                Button.danger("no-" + this.slashEvent.getId(), "No")
-        );
+            msg.addActionRow(
+                    Button.danger("remove-channel-" + this.slashEvent.getId(), "Remove"),
+                    Button.secondary("cancel-channel-" + this.slashEvent.getId(), "Cancel")
+            );
+        }
 
         this.slashEvent.reply(msg.build()).queue();
     }

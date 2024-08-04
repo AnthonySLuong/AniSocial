@@ -4,8 +4,7 @@ import lombok.NonNull;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Guild;
-import org.AniSocial.util.CommandData;
-import org.AniSocial.util.DatabaseHandler;
+import org.AniSocial.util.DBHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +21,7 @@ public class Main {
         boolean global = Boolean.parseBoolean(System.getenv("GLOBAL"));
         String guildid = System.getenv("GUILDID");
 
-        DatabaseHandler.getInstance().init(url.trim(), username.trim(), password.trim()).connect();
+        DBHandler.getInstance().init(url.trim(), username.trim(), password.trim()).connect();
 
         JDA api = JDABuilder.createDefault(token.trim())
                 .setAutoReconnect(true)

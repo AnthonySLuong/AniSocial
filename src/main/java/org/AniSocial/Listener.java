@@ -59,7 +59,7 @@ public class Listener extends ListenerAdapter {
 
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
-        LOGGER.info("Received Command => {} by {}", event.getCommandString(), event.getUser().getName());
+        LOGGER.info("Command => {} by {}", event.getCommandString(), event.getUser().getName());
 
         String commandName = event.getInteraction().getName();
         commandName = commandName.substring(0, 1).toUpperCase() + commandName.substring(1);
@@ -73,7 +73,6 @@ public class Listener extends ListenerAdapter {
                     .executeSlashCommand();
 
             this.cache.put(event.getId(), instance);
-            LOGGER.info("Executed Command => {} by {}", event.getCommandString(), event.getUser().getName());
         } catch (Exception e) {
             if (event.isAcknowledged()) {
                 event.getHook().editOriginalFormat("Bot couldn't execute %s", event.getCommandString()).queue();
@@ -86,23 +85,24 @@ public class Listener extends ListenerAdapter {
 
     @Override
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
-        LOGGER.info("Received Button => by {}", event.getUser().getName());
+        LOGGER.info("Button => {} by {}", event.getComponentId(), event.getUser().getName());
 
         MessageEditBuilder editData = MessageEditBuilder
                 .fromMessage(event.getMessage())
-                .clear()
-                .setContent("Interaction Timed out");
+                .clear();
 
         String[] split = event.getComponentId().trim().split("[\\s-]+");
-        Command c = this.cache.getIfPresent(split[1].trim());
-        if (c != null) {
+        Command command = this.cache.getIfPresent(split[2].trim());
+        if (command != null) {
             try {
-                c.setButtonEvent(event).executeButtonInteraction();
+                command.setButtonEvent(event).executeButtonInteraction();
             } catch (Exception e) {
+                editData.setContent("Bot couldn't execute Interaction");
                 event.editMessage(editData.build()).queue();
                 LOGGER.error(e.getMessage(), e);
             }
         } else {
+            editData.setContent("Interaction Timed out");
             event.editMessage(editData.build()).queue();
             LOGGER.warn("Button not in cache {}", split[1].trim());
         }

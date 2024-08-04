@@ -26,7 +26,10 @@ public class AniListQueryHandler {
                 .post(body)
                 .build();
 
-        LOGGER.info("Sending Request of {}", payload);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Sending Request of {}", payload);
+        }
+
         try (Response response = CLIENT.newCall(request).execute()) {
             if (response.isSuccessful() && response.body() != null) {
                 return new JSONObject(response.body().string()).getJSONObject("data");

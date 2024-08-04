@@ -7,7 +7,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
-import org.AniSocial.util.DatabaseHandler;
+import org.AniSocial.util.DBHandler;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -53,7 +53,7 @@ public class AniListTask implements Runnable {
         for (JSONObject user: users) {
             long anilistID = user.getJSONObject("user").getLong("id");
             try {
-                List<Long> channelIDs = DatabaseHandler.getInstance().channelIdsOfUser(anilistID);
+                List<Long> channelIDs = DBHandler.getInstance().channelIdsOfUser(anilistID);
                 for (long id : channelIDs) {
                     // TODO: Better Check
                     if (!user.getJSONObject("media").getBoolean("isAdult")) {
@@ -101,7 +101,7 @@ public class AniListTask implements Runnable {
      */
     @NonNull
     private static JSONObject getUsers() throws SQLException {
-        List<Long> userId = DatabaseHandler.getInstance().listofUserIds();
+        List<Long> userId = DBHandler.getInstance().listofUserIds();
         JSONObject variable = new JSONObject();
         variable.put("userids", userId);
         variable.put("page", 1);

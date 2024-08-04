@@ -1,6 +1,7 @@
 package org.AniSocial.util;
 
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import org.slf4j.Logger;
@@ -11,12 +12,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class DatabaseHandler {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseHandler.class);
-    private static DatabaseHandler databaseHandler = null;
+public class DBHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DBHandler.class);
+    private static DBHandler DBHandler = null;
 
     private Connection con;
-    private String url, username, password;
+    @Getter private String url;
+    private String username, password;
 
     /**
      * Set database instance url, username and password
@@ -26,7 +28,7 @@ public class DatabaseHandler {
      * @return instance of itself
      */
     @NonNull
-    public DatabaseHandler init(@NonNull String url, @NonNull String username, @NonNull String password) {
+    public DBHandler init(@NonNull String url, @NonNull String username, @NonNull String password) {
         this.url = url;
         this.username = username;
         this.password = password;
@@ -39,7 +41,7 @@ public class DatabaseHandler {
      * @throws SQLException If url, username, and password not initialize first
      */
     @NonNull
-    public DatabaseHandler connect() throws SQLException {
+    public DBHandler connect() throws SQLException {
         if (this.url == null || this.username == null || this.password == null) {
             throw new SQLException("Database not initialized");
         }
@@ -111,13 +113,13 @@ public class DatabaseHandler {
 
     /**
      * Check if channel ID is already added to database
-     * @param channelId channel id
+     * @param channelID channel id
      * @return True if exist otherwise false
      * @throws SQLException Any SQLException
      */
-    public boolean containChannelId(long channelId) throws SQLException {
+    public boolean containChannelID(long channelID) throws SQLException {
         try (PreparedStatement statement = this.con.prepareStatement("SELECT COUNT(channel_id) FROM channels WHERE channel_id = ?")) {
-            statement.setLong(1, channelId);
+            statement.setLong(1, channelID);
             ResultSet result = statement.executeQuery();
 
             if (result.next()) {
@@ -153,14 +155,20 @@ public class DatabaseHandler {
         }
     }
 
-    public int removeChannelId(long channelId) throws SQLException {
+    /**
+     * Remove Channel ID
+     * @param channelID Discord Channel ID
+     * @return Number of row affected
+     * @throws SQLException Any SQLException
+     */
+    public int removeChannelID(long channelID) throws SQLException {
         try (PreparedStatement statement = this.con.prepareStatement("DELETE FROM users WHERE channel_id = ?")) {
-            statement.setLong(1, channelId);
+            statement.setLong(1, channelID);
             statement.executeUpdate();
         }
 
         try (PreparedStatement statement = this.con.prepareStatement("DELETE FROM channels WHERE channel_id = ?")) {
-            statement.setLong(1, channelId);
+            statement.setLong(1, channelID);
             return statement.executeUpdate();
         }
     }
@@ -173,7 +181,7 @@ public class DatabaseHandler {
      * @param channelID Channel ID
      * @param addedBy User ID
      * @return Number of row affected
-     * @throws SQLException
+     * @throws SQLException Any SQLException
      */
     public int addUser(long id, @NonNull String name, @NonNull String siteUrl, long channelID, long addedBy) throws SQLException {
         try (PreparedStatement statement = this.con.prepareStatement("INSERT INTO users VALUES (?, ?, ?, ?, ?, NOW())")) {
@@ -187,21 +195,29 @@ public class DatabaseHandler {
         }
     }
 
-    public int removeUser(@NonNull String user, long channelId) throws SQLException {
+    /**
+     * Remove user from a single channel
+     * @param user AniList username
+     * @param channelID Discord Channel ID
+     * @return Number of row affected
+     * @throws SQLException Any SQLException
+     */
+    public int removeUser(@NonNull String user, long channelID) throws SQLException {
         try (PreparedStatement statement = this.con.prepareStatement("DELETE FROM users WHERE anilist_name = ? AND channel_id = ?")) {
             statement.setString(1, user.toLowerCase());
-            statement.setLong(2, channelId);
+            statement.setLong(2, channelID);
             return statement.executeUpdate();
         }
     }
 
     @NonNull
-    public static synchronized DatabaseHandler getInstance() throws SQLException {
-        if (databaseHandler == null) {
-            databaseHandler = new DatabaseHandler();
-        } else if (databaseHandler.con.isClosed()) {
-            databaseHandler.connect();
+    public static synchronized DBHandler getInstance() throws SQLException {
+        if (DBHandler == null) {
+            DBHandler = new DBHandler();
+        } else if (DBHandler.con.isClosed()) {
+            DBHandler.connect();
+            LOGGER.warn("Lost Connect to Database?, Reconnected");
         }
-        return databaseHandler;
+        return DBHandler;
     }
 }
