@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class Listener extends ListenerAdapter {
@@ -26,30 +27,37 @@ public class Listener extends ListenerAdapter {
     private final Cache<String, Command> cache = Caffeine.newBuilder()
             .expireAfterWrite(15, TimeUnit.MINUTES)
             .build();
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledFuture<?> scheduledTask;
 
     @Override
     public void onReady(@NotNull ReadyEvent event) {
         LOGGER.info("{} is ready!", event.getJDA().getSelfUser().getName());
 
-        try (ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1)) {
-            executorService.scheduleAtFixedRate(new AniListTask(event.getJDA()), 0, 15, TimeUnit.SECONDS);
-            LOGGER.info("Started AniList Task");
-        }
+        this.scheduledTask = this.executor.scheduleAtFixedRate(new AniListTask(event.getJDA()), 0, 15, TimeUnit.SECONDS);
+        LOGGER.info("Started AniList Task");
     }
 
     @Override
     public void onSessionDisconnect(@NotNull SessionDisconnectEvent event) {
-
+        if (this.scheduledTask != null && !this.scheduledTask.isDone()) {
+            this.scheduledTask.cancel(true);
+            LOGGER.info("Stopped AniList Task");
+        }
     }
 
     @Override
     public void onSessionRecreate(@NotNull SessionRecreateEvent event) {
-
+        if (this.scheduledTask != null && this.scheduledTask.isDone()) {
+            this.scheduledTask = this.executor.scheduleAtFixedRate(new AniListTask(event.getJDA()), 0, 15, TimeUnit.SECONDS);
+        }
     }
 
     @Override
     public void onSessionResume(@NotNull SessionResumeEvent event) {
-
+        if (this.scheduledTask != null && this.scheduledTask.isDone()) {
+            this.scheduledTask = this.executor.scheduleAtFixedRate(new AniListTask(event.getJDA()), 0, 15, TimeUnit.SECONDS);
+        }
     }
 
     @Override
