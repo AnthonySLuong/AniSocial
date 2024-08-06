@@ -9,16 +9,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
+import java.util.Objects;
 
 public class Main {
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) throws SQLException, InterruptedException {
-        @NonNull String token = System.getenv("TOKEN");
-        @NonNull String url = System.getenv("URL");
-        @NonNull String username = System.getenv("USERNAME");
-        @NonNull String password = System.getenv("PASSWORD");
-        boolean global = Boolean.parseBoolean(System.getenv("GLOBAL"));
+        String token = Objects.requireNonNull(System.getenv("TOKEN"));
+        String url = Objects.requireNonNull(System.getenv("URL"));
+        String username = Objects.requireNonNull(System.getenv("USERNAME"));
+        String password = Objects.requireNonNull(System.getenv("PASSWORD"));
+        boolean global = System.getenv("GLOBAL") != null && Boolean.parseBoolean(System.getenv("GLOBAL"));
         String guildid = System.getenv("GUILDID");
 
         DBHandler.getInstance().init(url.trim(), username.trim(), password.trim()).connect();
