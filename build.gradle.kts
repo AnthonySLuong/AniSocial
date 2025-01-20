@@ -14,7 +14,7 @@ repositories {
 dependencies {
     implementation("net.dv8tion:JDA:5.0.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("org.json:json:20240303")
+    implementation("org.json:json:20250107")
     implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
 
     implementation("ch.qos.logback:logback-classic:1.5.6")
