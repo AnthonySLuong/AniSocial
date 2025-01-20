@@ -20,7 +20,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.5.6")
     implementation("org.slf4j:slf4j-api:2.0.12")
 
-    runtimeOnly("org.postgresql:postgresql:42.7.3")
+    runtimeOnly("org.postgresql:postgresql:42.7.5")
 
     compileOnly("org.projectlombok:lombok:1.18.34")
     annotationProcessor("org.projectlombok:lombok:1.18.34")
